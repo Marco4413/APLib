@@ -1,6 +1,7 @@
 
-ver = '0.4'
+ver = '0.5'
 globalMonitor = term
+globalMonitorName = 'term'
 
 --DRAWING
 globalColor = colors.white
@@ -43,9 +44,16 @@ function bClear()
     globalMonitor.setCursorPos(1, 1)
 end
 
-function setMonitor(_monitor)
-    assert(_monitor.write, 'setMonitor: monitor must be a valid monitor')
-    globalMonitor = _monitor --SET GLOBALMONITOR TO MONITOR
+function setMonitor(_monitorName)
+    if _monitorName == 'term' then
+        globalMonitor = term --SET GLOBALMONITOR TO MONITOR
+        globalMonitorName = 'term'
+    else
+        assert(tostring(peripheral.getType(_monitorName)) == 'monitor', 'setMonitor: monitorName must be a monitor, got '..tostring(peripheral.getType(_monitorName)))
+        local _monitor = peripheral.wrap(_monitorName)
+        globalMonitor = _monitor --SET GLOBALMONITOR TO MONITOR
+        globalMonitorName = _monitorName
+    end
 end
 
 function setColor(_color)
@@ -489,8 +497,14 @@ function loop(_group)
 
         -- EVENT
         if event[1] == 'monitor_touch' or event[1] == 'mouse_click' then -- CHECK IF A BUTTON WAS PRESSED
-            for key in pairs(globalLoop.group) do
-                globalLoop.group[key]:update(event[3], event[4], event)
+            if globalMonitorName == 'term' then
+                for key in pairs(globalLoop.group) do
+                    globalLoop.group[key]:update(event[3], event[4], event)
+                end
+            elseif event[2] == globalMonitorName then
+                for key in pairs(globalLoop.group) do
+                    globalLoop.group[key]:update(event[3], event[4], event)
+                end
             end
         end
         
