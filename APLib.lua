@@ -1,5 +1,5 @@
 
-ver = '0.2'
+ver = '0.3'
 globalMonitor = term
 
 --DRAWING
@@ -25,6 +25,10 @@ rectangleTypes = {filled = 1, hollow = 2}
 
 event = {
     button = {
+        onDraw = 1,
+        onPress = 2
+    },
+    percentagebar = {
         onDraw = 1,
         onPress = 2
     },
@@ -162,9 +166,12 @@ function checkAreaPress(_x1, _y1, _x2, _y2, _xPressed, _yPressed)
 
 end
 
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
 Button = {}
 
 function Button.new(_x1, _y1, _x2, _y2, _text, _textColor, _backgroundTextColor, _pressedButtonColor, _notPressedButtonColor)
+    
     assert(type(_x1) == 'number', 'Button.new: x1 must be a number, got '..type(_x1))
     assert(type(_y1) == 'number', 'Button.new: y1 must be a number, got '..type(_y1))
     assert(type(_x2) == 'number', 'Button.new: x2 must be a number, got '..type(_x2))
@@ -279,6 +286,159 @@ end
 
 Button.__index = Button
 
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
+PercentageBar = {}
+
+function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _valueColor, _backgroundValueColor, _barColor, _backgroundBarColor)
+    
+    assert(type(_x1) == 'number', 'PercentageBar.new: x1 must be a number, got '..type(_x1))
+    assert(type(_y1) == 'number', 'PercentageBar.new: y1 must be a number, got '..type(_y1))
+    assert(type(_x2) == 'number', 'PercentageBar.new: x2 must be a number, got '..type(_x2))
+    assert(type(_y2) == 'number', 'PercentageBar.new: y2 must be a number, got '..type(_y2))
+    assert(type(_value) == 'number', 'PercentageBar.new: value must be a number, got '..type(_value))
+    assert(type(_min) == 'number', 'PercentageBar.new: min must be a number, got '..type(_min))
+    assert(type(_max) == 'number', 'PercentageBar.new: max must be a number, got '..type(_max))
+    
+    --FIX THINGS
+    _valueColor = tonumber(_valueColor)
+    _backgroundValueColor = tonumber(_backgroundValueColor)
+    _barColor = tonumber(_barColor)
+    _backgroundBarColor = tonumber(_backgroundBarColor)
+    
+    --CHECK THINGS
+    if not _valueColor then
+        _valueColor = globalTextColor
+    end
+    if not _barColor then
+        _barColor = globalColor
+    end
+    
+    --CREATE PERCENTAGEBAR
+    _newPercentageBar = {
+        value = {
+            draw = _drawValue,
+            percentage = nil,
+            current = nil,
+            max = _max,
+            min = _min
+        },
+        pos = {
+            x1 = _x1,
+            y1 = _y1,
+            x2 = _x2,
+            y2 = _y2
+        },
+        colors = {
+            valueColor = _valueColor,
+            backgroundValueColor = _backgroundValueColor,
+            barColor = _barColor,
+            backgroundBarColor = _backgroundBarColor
+        },
+        callbacks = {
+            onDraw = function() end,
+            onPress = function() end
+        }
+    }
+
+    PercentageBar.setValue(_newPercentageBar, _value)
+    setmetatable(_newPercentageBar, PercentageBar) --SET PERCENTAGEBAR METATABLE
+    return _newPercentageBar
+end
+
+function PercentageBar:draw()
+    local oldRectType = globalRectangleType
+    local oldColor = globalColor
+    local oldTextColor = globalTextColor
+    local oldBackgroundTextColor = globalBackgroundTextColor
+
+    local backgroundColor = globalMonitor.getBackgroundColor()
+    
+    --SETTING THINGS TO PERCENTAGEBAR SETTINGS
+    setRectangleType(rectangleTypes.filled)
+
+    if self.colors.backgroundBarColor then -- DRAW PERCENTAGE BAR WITH BACKGROUND
+        setColor(self.colors.backgroundBarColor)
+        rectangle(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2)
+
+        if self.value.percentage > 0 then
+            setColor(self.colors.barColor)
+            rectangle(self.pos.x1, self.pos.y1, self.pos.x1 + ((self.pos.x2 - self.pos.x1) * self.value.percentage / 100), self.pos.y2)
+        end
+    else -- DRAW PERCENTAGE BAR WITHOUT BACKGROUND
+        if self.value.percentage > 0 then
+            setColor(self.colors.barColor)
+            rectangle(self.pos.x1, self.pos.y1, self.pos.x1 + ((self.pos.x2 - self.pos.x1) * self.value.percentage / 100), self.pos.y2)
+        end
+    end
+
+    if self.value.draw then -- DRAW PB VALUE IF THE SETTING IS ENABLED
+        
+        -- CENTER VALUE ON PB
+        local _valueX = self.pos.x1 + math.floor((self.pos.x2 - self.pos.x1 - string.len(self.value.percentage..'%') + 1) / 2)
+        
+        local _valueY
+        if self.pos.y1 > self.pos.y2 then
+            _valueY = self.pos.y1 + 1
+        else
+            _valueY = self.pos.y2 + 1
+        end
+
+        setTextColor(self.colors.valueColor) -- SET VALUE COLOR
+        if self.colors.backgroundValueColor then -- CHECK IF THE BG COLOR IS SPECIFIED
+            setBackgroundTextColor(self.colors.backgroundValueColor)
+        else -- IF NOT SPECIFIED
+            if self.colors.backgroundBarColor then -- CHECK IF PBBGC IS SPECIFIED
+                setBackgroundTextColor(self.colors.backgroundBarColor)
+            else -- IF NOT SPECIFIED
+                setBackgroundTextColor(backgroundColor)
+            end
+        end
+        text(_valueX, _valueY, self.value.percentage..'%')
+    end
+
+    --REVERTING ALL CHANGES MADE BEFORE
+    setRectangleType(oldRectType)
+    setColor(oldColor)
+    setTextColor(oldTextColor)
+    setBackgroundTextColor(oldBackgroundTextColor)
+
+    self.callbacks.onDraw(self)
+end
+
+function PercentageBar:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'PercentageBar.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onDraw = _callback
+    elseif _event == 2 then
+        self.callbacks.onPress = _callback
+    end
+end
+
+function PercentageBar:setValue(_value)
+    assert(type(_value) == 'number', 'PercentageBar.setValue: value must be a number, got '..type(_value))
+    if _value < self.value.min then _value = self.value.min; end
+    if _value > self.value.max then _value = self.value.max; end
+    self.value.current = _value
+    self.value.percentage = math.floor(((self.value.current - self.value.min) / (self.value.max - self.value.min)) * 100)
+end
+
+function PercentageBar:update(_x, _y, _event)
+    assert(type(_x) == 'number', 'PercentageBar.update: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'PercentageBar.update: y must be a number, got '..type(_y))
+
+    if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
+        -- IF THE PERCENTAGEBAR WAS PRESSED CALL CALLBACK
+        self.callbacks.onPress(self, _event)
+        return true
+    else
+        return false
+    end
+end
+
+PercentageBar.__index = PercentageBar
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
 function setLoopDrawOnlyOnTick(_bool)
     assert(type(_bool) == 'boolean', 'setLoopDrawOnlyOnTick: bool must be a boolean, got '..type(_bool))
@@ -314,6 +474,7 @@ function loop(_group)
     globalLoop.enabled = true -- ACTIVATE LOOP
     globalLoop.group = _group -- SET GLOBAL LOOP GROUP
 
+    bClear()
     for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS BEFORE STARTING LOOP
         globalLoop.group[key]:draw()
     end
@@ -337,6 +498,7 @@ function loop(_group)
         if (event[1] == 'timer') then
             
             if globalLoop.drawOnlyOnTick then -- TICK DRAW
+                bClear()
                 for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
                     globalLoop.group[key]:draw()
                 end
@@ -348,6 +510,7 @@ function loop(_group)
         end
 
         if not globalLoop.drawOnlyOnTick then -- NON TICK DRAW
+            bClear()
             for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
                 globalLoop.group[key]:draw()
             end
