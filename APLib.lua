@@ -1,7 +1,8 @@
 
-ver = '0.5'
+ver = '0.6'
 globalMonitor = term
 globalMonitorName = 'term'
+globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
 
 --DRAWING
 globalColor = colors.white
@@ -12,9 +13,10 @@ globalRectangleType = 1
 --LOOPS
 globalLoop = {
     enabled = false,
-    drawOnlyOnClock = false,
+    drawOnClock = true,
     speed = 0.5,
     callbacks = {
+        onInit = function() end,
         onEvent = function() end,
         onClock = function() end
     },
@@ -34,8 +36,9 @@ event = {
         onPress = 2
     },
     loop = {
-        onEvent = 1,
-        onClock = 2
+        onInit = 1,
+        onEvent = 2,
+        onClock = 3
     }
 }
 
@@ -48,11 +51,13 @@ function setMonitor(_monitorName)
     if _monitorName == 'term' then
         globalMonitor = term --SET GLOBALMONITOR TO MONITOR
         globalMonitorName = 'term'
+        globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
     else
         assert(tostring(peripheral.getType(_monitorName)) == 'monitor', 'setMonitor: monitorName must be a monitor, got '..tostring(peripheral.getType(_monitorName)))
         local _monitor = peripheral.wrap(_monitorName)
         globalMonitor = _monitor --SET GLOBALMONITOR TO MONITOR
         globalMonitorName = _monitorName
+        globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
     end
 end
 
@@ -78,14 +83,15 @@ function setBackground(_color)
 end
 
 function setRectangleType(_type)
-    assert(type(_type) == 'number', 'rectangleType: type must be a number, got '..type(_type))
+    assert(type(_type) == 'number', 'setRectangleType: type must be a number, got '..type(_type))
     globalRectangleType = _type
 end
 
 function text(_x, _y, _text)
     assert(type(_x) == 'number', 'Text: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Text: y must be a number, got '..type(_y))
-    assert((type(_text) == 'string') or (type(_text) == 'string'), 'Text: text must be either a string or a number, got '..type(_text))
+    
+    _text = tostring(_text)
 
     local oldCursorPosX, oldCursorPosY = globalMonitor.getCursorPos()
     local oldTextColor = globalMonitor.getTextColor()
@@ -101,6 +107,15 @@ function text(_x, _y, _text)
     globalMonitor.setTextColor(oldTextColor)
     globalMonitor.setBackgroundColor(oldBackgroundColor)
     
+end
+
+function header(_y, _text)
+    assert(type(_y) == 'number', 'Header: y must be a number, got '..type(_y))
+
+    _text = tostring(_text)
+    local _textX = math.floor((globalMonitorWidth - string.len(_text) + 1) / 2)
+
+    text(_textX, _y, _text)
 end
 
 function point(_x, _y)
@@ -396,11 +411,7 @@ function PercentageBar:draw()
         if self.colors.backgroundValueColor then -- CHECK IF THE BG COLOR IS SPECIFIED
             setBackgroundTextColor(self.colors.backgroundValueColor)
         else -- IF NOT SPECIFIED
-            if self.colors.backgroundBarColor then -- CHECK IF PBBGC IS SPECIFIED
-                setBackgroundTextColor(self.colors.backgroundBarColor)
-            else -- IF NOT SPECIFIED
-                setBackgroundTextColor(backgroundColor)
-            end
+            setBackgroundTextColor(backgroundColor)
         end
         text(_valueX, _valueY, self.value.percentage..'%')
     end
@@ -448,21 +459,26 @@ PercentageBar.__index = PercentageBar
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
-function setLoopDrawOnlyOnClock(_bool)
-    assert(type(_bool) == 'boolean', 'setLoopDrawOnlyOnClock: bool must be a boolean, got '..type(_bool))
-    globalLoop.drawOnlyOnClock = _bool
+function drawOnLoopClock()
+    globalLoop.drawOnClock = true
 end
 
-function setLoopTickSpeed(_sec)
-    assert(type(_sec) == 'number', 'setLoopTickSpeed: sec must be a number, got '..type(_sec))
+function drawOnLoopEvent()
+    globalLoop.drawOnClock = false
+end
+
+function setLoopClockSpeed(_sec)
+    assert(type(_sec) == 'number', 'setLoopClockSpeed: sec must be a number, got '..type(_sec))
     globalLoop.speed = _sec
 end
 
 function setLoopCallback(_event, _callback)
     assert(type(_callback) == 'function', 'setLoopCallback: callback must be a function, got '..type(_callback))
     if _event == 1 then
-        globalLoop.callbacks.onEvent = _callback
+        globalLoop.callbacks.onInit = _callback
     elseif _event == 2 then
+        globalLoop.callbacks.onEvent = _callback
+    elseif _event == 3 then
         globalLoop.callbacks.onClock = _callback
     end
 end
@@ -470,10 +486,10 @@ end
 function stopLoop()
     globalLoop.enabled = false --STOP LOOP
 
-    for key in pairs(globalLoop.group) do
-        globalLoop.group[key].callbacks.onUpdateLoop = function() end
-    end
-
+    globalLoop.callbacks.onInit = function() end
+    globalLoop.callbacks.onEvent = function() end -- CLEARS LOOP CALLBACKS
+    globalLoop.callbacks.onClock = function() end
+    
     globalLoop.group = {} --CLEAR LOOP GROUP
 end
 
@@ -483,6 +499,7 @@ function loop(_group)
     globalLoop.group = _group -- SET GLOBAL LOOP GROUP
 
     bClear()
+    globalLoop.callbacks.onInit()
     for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS BEFORE STARTING LOOP
         globalLoop.group[key]:draw()
     end
@@ -508,27 +525,29 @@ function loop(_group)
             end
         end
         
-        globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+        if not globalLoop.drawOnClock then -- NON CLOCK DRAW
+            bClear()
+            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+            for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                globalLoop.group[key]:draw()
+            end
+        else
+            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+        end
 
         -- CLOCK
         if os.clock() >= Clock + globalLoop.speed then
 
             Clock = os.clock()
-            
-            globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
 
-            if globalLoop.drawOnlyOnClock then -- CLOCK DRAW
+            if globalLoop.drawOnClock then -- CLOCK DRAW
                 bClear()
+                globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
                 for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
                     globalLoop.group[key]:draw()
                 end
-            end
-        end
-
-        if not globalLoop.drawOnlyOnClock then -- NON CLOCK DRAW
-            bClear()
-            for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
-                globalLoop.group[key]:draw()
+            else
+                globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
             end
         end
 
