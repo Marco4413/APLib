@@ -1,5 +1,5 @@
 
-ver = '0.3'
+ver = '0.4'
 globalMonitor = term
 
 --DRAWING
@@ -11,11 +11,11 @@ globalRectangleType = 1
 --LOOPS
 globalLoop = {
     enabled = false,
-    drawOnlyOnTick = false,
+    drawOnlyOnClock = false,
     speed = 0.5,
     callbacks = {
         onEvent = function() end,
-        onTimer = function() end
+        onClock = function() end
     },
     group = {}
 }
@@ -34,7 +34,7 @@ event = {
     },
     loop = {
         onEvent = 1,
-        onTimer = 2
+        onClock = 2
     }
 }
 
@@ -440,9 +440,9 @@ PercentageBar.__index = PercentageBar
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
-function setLoopDrawOnlyOnTick(_bool)
-    assert(type(_bool) == 'boolean', 'setLoopDrawOnlyOnTick: bool must be a boolean, got '..type(_bool))
-    globalLoop.drawOnlyOnTick = _bool
+function setLoopDrawOnlyOnClock(_bool)
+    assert(type(_bool) == 'boolean', 'setLoopDrawOnlyOnClock: bool must be a boolean, got '..type(_bool))
+    globalLoop.drawOnlyOnClock = _bool
 end
 
 function setLoopTickSpeed(_sec)
@@ -455,7 +455,7 @@ function setLoopCallback(_event, _callback)
     if _event == 1 then
         globalLoop.callbacks.onEvent = _callback
     elseif _event == 2 then
-        globalLoop.callbacks.onTimer = _callback
+        globalLoop.callbacks.onClock = _callback
     end
 end
 
@@ -479,43 +479,45 @@ function loop(_group)
         globalLoop.group[key]:draw()
     end
 
-    local Timer = false
+    local Clock = os.clock()
 
     while globalLoop.enabled do
 
-        if not Timer then
-            Timer = os.startTimer(globalLoop.speed) -- START A TIMER
-        end
+        local Timer = os.startTimer(globalLoop.speed / 2) -- START A TIMER
 
         local event = {os.pullEvent()} -- PULL EVENTS
 
+        -- EVENT
         if event[1] == 'monitor_touch' or event[1] == 'mouse_click' then -- CHECK IF A BUTTON WAS PRESSED
             for key in pairs(globalLoop.group) do
                 globalLoop.group[key]:update(event[3], event[4], event)
             end
         end
+        
+        globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
 
-        if (event[1] == 'timer') then
+        -- CLOCK
+        if os.clock() >= Clock + globalLoop.speed then
+
+            Clock = os.clock()
             
-            if globalLoop.drawOnlyOnTick then -- TICK DRAW
+            globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
+
+            if globalLoop.drawOnlyOnClock then -- CLOCK DRAW
                 bClear()
                 for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
                     globalLoop.group[key]:draw()
                 end
             end
-
-            globalLoop.callbacks.onTimer(event) -- TIMER CALLBACK
-            os.cancelTimer(Timer) -- DELETE TIMER
-            Timer = false
         end
 
-        if not globalLoop.drawOnlyOnTick then -- NON TICK DRAW
+        if not globalLoop.drawOnlyOnClock then -- NON CLOCK DRAW
             bClear()
             for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
                 globalLoop.group[key]:draw()
             end
         end
 
-        globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+        os.cancelTimer(Timer) -- DELETE TIMER
     end
 end
