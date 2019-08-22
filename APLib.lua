@@ -1,18 +1,19 @@
 
-ver = '0.6'
-globalMonitor = term
-globalMonitorName = 'term'
-globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
+ver = '0.7'
+local globalMonitor = term
+local globalMonitorName = 'term'
+local globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
 
 --DRAWING
-globalColor = colors.white
-globalTextColor = colors.white
-globalBackgroundTextColor = colors.black
-globalRectangleType = 1
+local globalColor = colors.white
+local globalTextColor = colors.white
+local globalBackgroundTextColor = colors.black
+local globalRectangleType = 1
 
 --LOOPS
-globalLoop = {
+local globalLoop = {
     enabled = false,
+    autoClear = true,
     drawOnClock = true,
     speed = 0.5,
     callbacks = {
@@ -23,10 +24,30 @@ globalLoop = {
     group = {}
 }
 
+--GLOBALCALLBACKS
+local globalCallbacks = {
+    onInfo = function() end,
+    onBClear = function() end,
+    onSetMonitor = function() end
+}
+
 --HELPERS
 rectangleTypes = {filled = 1, hollow = 2}
 
 event = {
+    global = {
+        onInfo = 1,
+        onBClear = 2,
+        onSetMonitor = 3
+    },
+    header = {
+        onDraw = 1,
+        onPress = 2
+    },
+    label = {
+        onDraw = 1,
+        onPress = 2
+    },
     button = {
         onDraw = 1,
         onPress = 2
@@ -42,9 +63,39 @@ event = {
     }
 }
 
+function setGlobalCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'setGlobalCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        globalCallbacks.onInfo = _callback
+    elseif _event == 2 then
+        globalCallbacks.onBClear = _callback
+    elseif _event == 3 then
+        globalCallbacks.onSetMonitor = _callback
+    end
+end
+
+function getInfo()
+    local _Lib = {
+        ver = ver,
+        globalMonitor = globalMonitor,
+        globalMonitorName = globalMonitorName,
+        globalMonitorWidth = globalMonitorWidth,
+        globalMonitorHeight = globalMonitorHeight,
+        globalColor = globalColor,
+        globalTextColor = globalTextColor,
+        globalBackgroundTextColor = globalBackgroundTextColor,
+        globalRectangleType = globalRectangleType,
+        globalLoop = globalLoop,
+        globalCallbacks = globalCallbacks
+    }
+    globalCallbacks.onInfo(_Lib)
+    return _Lib
+end
+
 function bClear()
     globalMonitor.clear()
     globalMonitor.setCursorPos(1, 1)
+    globalCallbacks.onBClear()
 end
 
 function setMonitor(_monitorName)
@@ -59,6 +110,7 @@ function setMonitor(_monitorName)
         globalMonitorName = _monitorName
         globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
     end
+    globalCallbacks.onSetMonitor(globalMonitor, globalMonitorName, globalMonitorWidth, globalMonitorHeight)
 end
 
 function setColor(_color)
@@ -107,15 +159,6 @@ function text(_x, _y, _text)
     globalMonitor.setTextColor(oldTextColor)
     globalMonitor.setBackgroundColor(oldBackgroundColor)
     
-end
-
-function header(_y, _text)
-    assert(type(_y) == 'number', 'Header: y must be a number, got '..type(_y))
-
-    _text = tostring(_text)
-    local _textX = math.floor((globalMonitorWidth - string.len(_text) + 1) / 2)
-
-    text(_textX, _y, _text)
 end
 
 function point(_x, _y)
@@ -191,6 +234,196 @@ end
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
+Header = {}
+
+function Header.new(_y, _text, _textColor, _backgroundTextColor)
+
+    assert(type(_y) == 'number', 'Header.new: y must be a number, got '..type(_y))
+
+    --FIX THINGS
+    _text = tostring(_text)
+    _textColor = tonumber(_textColor)
+    _backgroundTextColor = tonumber(_backgroundTextColor)
+
+    --CHECK THINGS
+    if not _textColor then
+        _textColor = globalTextColor
+    end
+
+    --CREATE HEADER
+    _newHeader = {
+        text = _text,
+        hidden = false,
+        pos = {
+            x = math.floor((globalMonitorWidth - string.len(_text) + 1) / 2),
+            y = _y
+        },
+        colors = {
+            textColor = _textColor,
+            backgroundTextColor = _backgroundTextColor
+        },
+        callbacks = {
+            onDraw = function() end,
+            onPress = function() end
+        }
+    }
+    setmetatable(_newHeader, Header) --SET HEADER METATABLE
+    return _newHeader
+end
+
+function Header:draw()
+    local oldTextColor = globalTextColor
+    local oldBackgroundTextColor = globalBackgroundTextColor
+
+    local backgroundColor = globalMonitor.getBackgroundColor()
+    
+    --SETTING THINGS TO HEADER SETTINGS
+    setTextColor(self.colors.textColor)
+    if self.colors.backgroundTextColor then
+        setBackgroundTextColor(self.colors.backgroundTextColor)
+    else
+        setBackgroundTextColor(backgroundColor)
+    end
+    setTextColor(self.colors.textColor)
+
+    --DRAWING HEADER
+    self.pos.x = math.floor((globalMonitorWidth - string.len(self.text) + 1) / 2)
+    text(self.pos.x, self.pos.y, self.text)
+
+    --REVERTING ALL CHANGES MADE BEFORE
+    setTextColor(oldTextColor)
+    setBackgroundTextColor(oldBackgroundTextColor)
+
+    self.callbacks.onDraw(self)
+end
+
+function Header:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'Header.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onDraw = _callback
+    elseif _event == 2 then
+        self.callbacks.onPress = _callback
+    end
+end
+
+function Header:update(_x, _y, _event)
+    assert(type(_x) == 'number', 'Header.update: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Header.update: y must be a number, got '..type(_y))
+
+    local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
+    if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
+        -- IF THE HEADER WAS PRESSED CALL CALLBACK
+        self.callbacks.onPress(self, _event)
+        return true
+    else
+        return false
+    end
+end
+
+function Header:hide(_bool)
+    assert(type(_bool) == 'boolean', 'Header.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
+Header.__index = Header
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
+Label = {}
+
+function Label.new(_x, _y, _text, _textColor, _backgroundTextColor)
+
+    assert(type(_x) == 'number', 'Label.new: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Label.new: y must be a number, got '..type(_y))
+
+    --FIX THINGS
+    _text = tostring(_text)
+    _textColor = tonumber(_textColor)
+    _backgroundTextColor = tonumber(_backgroundTextColor)
+
+    --CHECK THINGS
+    if not _textColor then
+        _textColor = globalTextColor
+    end
+
+    --CREATE LABEL
+    _newLabel = {
+        text = _text,
+        hidden = false,
+        pos = {
+            x = _x,
+            y = _y
+        },
+        colors = {
+            textColor = _textColor,
+            backgroundTextColor = _backgroundTextColor
+        },
+        callbacks = {
+            onDraw = function() end,
+            onPress = function() end
+        }
+    }
+    setmetatable(_newLabel, Label) --SET LABEL METATABLE
+    return _newLabel
+end
+
+function Label:draw()
+    local oldTextColor = globalTextColor
+    local oldBackgroundTextColor = globalBackgroundTextColor
+
+    local backgroundColor = globalMonitor.getBackgroundColor()
+    
+    --SETTING THINGS TO LABEL SETTINGS
+    setTextColor(self.colors.textColor)
+    if self.colors.backgroundTextColor then
+        setBackgroundTextColor(self.colors.backgroundTextColor)
+    else
+        setBackgroundTextColor(backgroundColor)
+    end
+    setTextColor(self.colors.textColor)
+
+    --DRAWING LABEL
+    text(self.pos.x, self.pos.y, self.text)
+
+    --REVERTING ALL CHANGES MADE BEFORE
+    setTextColor(oldTextColor)
+    setBackgroundTextColor(oldBackgroundTextColor)
+
+    self.callbacks.onDraw(self)
+end
+
+function Label:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'Label.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onDraw = _callback
+    elseif _event == 2 then
+        self.callbacks.onPress = _callback
+    end
+end
+
+function Label:update(_x, _y, _event)
+    assert(type(_x) == 'number', 'Label.update: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Label.update: y must be a number, got '..type(_y))
+
+    local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
+    if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
+        -- IF THE LABEL WAS PRESSED CALL CALLBACK
+        self.callbacks.onPress(self, _event)
+        return true
+    else
+        return false
+    end
+end
+
+function Label:hide(_bool)
+    assert(type(_bool) == 'boolean', 'Label.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
+Label.__index = Label
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
 Button = {}
 
 function Button.new(_x1, _y1, _x2, _y2, _text, _textColor, _backgroundTextColor, _pressedButtonColor, _notPressedButtonColor)
@@ -222,6 +455,7 @@ function Button.new(_x1, _y1, _x2, _y2, _text, _textColor, _backgroundTextColor,
     _newButton = {
         text = _text,
         state = false,
+        hidden = false,
         pos = {
             x1 = _x1,
             y1 = _y1,
@@ -307,6 +541,11 @@ function Button:update(_x, _y, _event)
     end
 end
 
+function Button:hide(_bool)
+    assert(type(_bool) == 'boolean', 'Button.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
 Button.__index = Button
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
@@ -339,6 +578,7 @@ function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _
     
     --CREATE PERCENTAGEBAR
     _newPercentageBar = {
+        hidden = false,
         value = {
             draw = _drawValue,
             percentage = nil,
@@ -455,6 +695,11 @@ function PercentageBar:update(_x, _y, _event)
     end
 end
 
+function PercentageBar:hide(_bool)
+    assert(type(_bool) == 'boolean', 'PercentageBar.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
 PercentageBar.__index = PercentageBar
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
@@ -483,6 +728,11 @@ function setLoopCallback(_event, _callback)
     end
 end
 
+function loopAutoClear(_bool)
+    assert(type(_bool) == 'boolean', 'loopAutoClear: bool must be a boolean, got '..type(_bool))
+    globalLoop.autoClear = _bool
+end
+
 function stopLoop()
     globalLoop.enabled = false --STOP LOOP
 
@@ -498,10 +748,14 @@ function loop(_group)
     globalLoop.enabled = true -- ACTIVATE LOOP
     globalLoop.group = _group -- SET GLOBAL LOOP GROUP
 
-    bClear()
+    if globalLoop.autoClear then
+        bClear()
+    end
     globalLoop.callbacks.onInit()
     for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS BEFORE STARTING LOOP
-        globalLoop.group[key]:draw()
+        if not globalLoop.group[key].hidden then
+            globalLoop.group[key]:draw()
+        end
     end
 
     local Clock = os.clock()
@@ -513,26 +767,18 @@ function loop(_group)
         local event = {os.pullEvent()} -- PULL EVENTS
 
         -- EVENT
-        if event[1] == 'monitor_touch' or event[1] == 'mouse_click' then -- CHECK IF A BUTTON WAS PRESSED
-            if globalMonitorName == 'term' then
-                for key in pairs(globalLoop.group) do
-                    globalLoop.group[key]:update(event[3], event[4], event)
-                end
-            elseif event[2] == globalMonitorName then
-                for key in pairs(globalLoop.group) do
+        if event[1] == 'monitor_touch' and event[2] == globalMonitorName then -- CHECK IF A BUTTON WAS PRESSED
+            for key in pairs(globalLoop.group) do
+                if not globalLoop.group[key].hidden then
                     globalLoop.group[key]:update(event[3], event[4], event)
                 end
             end
-        end
-        
-        if not globalLoop.drawOnClock then -- NON CLOCK DRAW
-            bClear()
-            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
-            for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
-                globalLoop.group[key]:draw()
+        elseif event[1] == 'mouse_click' and globalMonitorName == 'term' then
+            for key in pairs(globalLoop.group) do
+                if not globalLoop.group[key].hidden then
+                    globalLoop.group[key]:update(event[3], event[4], event)
+                end
             end
-        else
-            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
         end
 
         -- CLOCK
@@ -541,14 +787,33 @@ function loop(_group)
             Clock = os.clock()
 
             if globalLoop.drawOnClock then -- CLOCK DRAW
-                bClear()
+                if globalLoop.autoClear then
+                    bClear()
+                end
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
                 for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
-                    globalLoop.group[key]:draw()
+                    if not globalLoop.group[key].hidden then
+                        globalLoop.group[key]:draw()
+                    end
                 end
             else
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
             end
+        end
+
+        --EVENT DRAW
+        if not globalLoop.drawOnClock then -- NON CLOCK DRAW
+            if globalLoop.autoClear then
+                bClear()
+            end
+            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+            for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                if not globalLoop.group[key].hidden then
+                    globalLoop.group[key]:draw()
+                end
+            end
+        else
+            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
         end
 
         os.cancelTimer(Timer) -- DELETE TIMER
