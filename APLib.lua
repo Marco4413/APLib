@@ -1,5 +1,5 @@
 
-ver = '0.8'
+ver = '0.9'
 local globalMonitor = term
 local globalMonitorName = 'term'
 local globalMonitorGroup = {
@@ -116,6 +116,15 @@ function bClear()
     globalMonitor.clear()
     globalMonitor.setCursorPos(1, 1)
     globalCallbacks.onBClear()
+end
+
+function bClearMonitorGroup()
+    local oldMonitor = globalMonitorName
+    for _, monitorName in pairs(globalMonitorGroup.list) do
+        setMonitor(monitorName)
+        bClear()
+    end
+    setMonitor(oldMonitor)
 end
 
 function setMonitor(_monitorName)
@@ -843,13 +852,13 @@ function loop(_group)
         local event = {os.pullEvent()} -- PULL EVENTS
 
         -- EVENT
-        if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or tableHas(globalMonitorGroup.list, event[2])) then -- CHECK IF A BUTTON WAS PRESSED
+        if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
             for key in pairs(globalLoop.group) do
                 if not globalLoop.group[key].hidden then
                     globalLoop.group[key]:update(event[3], event[4], event)
                 end
             end
-        elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or tableHas(globalMonitorGroup.list, 'term')) then
+        elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, 'term'))) then
             for key in pairs(globalLoop.group) do
                 if not globalLoop.group[key].hidden then
                     globalLoop.group[key]:update(event[3], event[4], event)
