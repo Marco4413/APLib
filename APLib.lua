@@ -1,7 +1,11 @@
 
-ver = '0.7'
+ver = '0.8'
 local globalMonitor = term
 local globalMonitorName = 'term'
+local globalMonitorGroup = {
+    enabled = false,
+    list = {}
+}
 local globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
 
 --DRAWING
@@ -15,11 +19,14 @@ local globalLoop = {
     enabled = false,
     autoClear = true,
     drawOnClock = true,
-    speed = 0.5,
+    clockSpeed = 0.5,
+    timerSpeed = 0.1,
     callbacks = {
         onInit = function() end,
+        onClock = function() end,
         onEvent = function() end,
-        onClock = function() end
+        onTimer = function() end,
+        onMonitorChange = function() end
     },
     group = {}
 }
@@ -58,10 +65,22 @@ event = {
     },
     loop = {
         onInit = 1,
-        onEvent = 2,
-        onClock = 3
+        onClock = 2,
+        onEvent = 3,
+        onTimer = 4,
+        onMonitorChange = 5
     }
 }
+
+function tableHas(_table, _value)
+    assert(type(_table) == 'table', 'tableHas: table must be a table, got '..type(_table))
+    for key, value in pairs(_table) do
+        if value == _value then
+            return true
+        end
+    end
+    return false
+end
 
 function setGlobalCallback(_event, _callback)
     assert(type(_callback) == 'function', 'setGlobalCallback: callback must be a function, got '..type(_callback))
@@ -79,6 +98,7 @@ function getInfo()
         ver = ver,
         globalMonitor = globalMonitor,
         globalMonitorName = globalMonitorName,
+        globalMonitorGroup = globalMonitorGroup,
         globalMonitorWidth = globalMonitorWidth,
         globalMonitorHeight = globalMonitorHeight,
         globalColor = globalColor,
@@ -99,6 +119,7 @@ function bClear()
 end
 
 function setMonitor(_monitorName)
+    globalCallbacks.onSetMonitor(globalMonitor, globalMonitorName, globalMonitorWidth, globalMonitorHeight)
     if _monitorName == 'term' then
         globalMonitor = term --SET GLOBALMONITOR TO MONITOR
         globalMonitorName = 'term'
@@ -110,7 +131,26 @@ function setMonitor(_monitorName)
         globalMonitorName = _monitorName
         globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
     end
-    globalCallbacks.onSetMonitor(globalMonitor, globalMonitorName, globalMonitorWidth, globalMonitorHeight)
+end
+
+function setMonitorGroup(_monitorNameList)
+    assert(type(_monitorNameList) == 'table', 'setMonitorGroup: monitorNameList must be a table, got '..type(_monitorNameList))
+    for key, value in pairs(_monitorNameList) do
+        value = tostring(value)
+        if not value == 'term' then
+            assert(tostring(peripheral.getType(value)) == 'monitor', 'setMonitorGroup: '..value..' must be a monitor, got '..tostring(peripheral.getType(value)))
+        end
+    end
+    globalMonitorGroup.list = _monitorNameList
+end
+
+function setMonitorGroupEnabled(_bool)
+    assert(type(_bool) == 'boolean', 'setMonitorGroupEnabled: bool must be a boolean, got '..type(_bool))
+    globalMonitorGroup.enabled = _bool
+end
+
+function resetMonitorGroup()
+    globalMonitorGroup.list = {}
 end
 
 function setColor(_color)
@@ -272,11 +312,13 @@ function Header.new(_y, _text, _textColor, _backgroundTextColor)
 end
 
 function Header:draw()
+    self.callbacks.onDraw(self)
+
     local oldTextColor = globalTextColor
     local oldBackgroundTextColor = globalBackgroundTextColor
 
     local backgroundColor = globalMonitor.getBackgroundColor()
-    
+
     --SETTING THINGS TO HEADER SETTINGS
     setTextColor(self.colors.textColor)
     if self.colors.backgroundTextColor then
@@ -293,8 +335,6 @@ function Header:draw()
     --REVERTING ALL CHANGES MADE BEFORE
     setTextColor(oldTextColor)
     setBackgroundTextColor(oldBackgroundTextColor)
-
-    self.callbacks.onDraw(self)
 end
 
 function Header:setCallback(_event, _callback)
@@ -310,6 +350,7 @@ function Header:update(_x, _y, _event)
     assert(type(_x) == 'number', 'Header.update: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Header.update: y must be a number, got '..type(_y))
 
+    self.pos.x = math.floor((globalMonitorWidth - string.len(self.text) + 1) / 2) -- RECALC SCREEN CENTRE
     local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
     if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
         -- IF THE HEADER WAS PRESSED CALL CALLBACK
@@ -368,6 +409,8 @@ function Label.new(_x, _y, _text, _textColor, _backgroundTextColor)
 end
 
 function Label:draw()
+    self.callbacks.onDraw(self)
+
     local oldTextColor = globalTextColor
     local oldBackgroundTextColor = globalBackgroundTextColor
 
@@ -478,6 +521,8 @@ function Button.new(_x1, _y1, _x2, _y2, _text, _textColor, _backgroundTextColor,
 end
 
 function Button:draw()
+    self.callbacks.onDraw(self)
+
     local oldRectType = globalRectangleType
     local oldColor = globalColor
     local oldTextColor = globalTextColor
@@ -610,6 +655,8 @@ function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _
 end
 
 function PercentageBar:draw()
+    self.callbacks.onDraw(self)
+
     local oldRectType = globalRectangleType
     local oldColor = globalColor
     local oldTextColor = globalTextColor
@@ -714,7 +761,12 @@ end
 
 function setLoopClockSpeed(_sec)
     assert(type(_sec) == 'number', 'setLoopClockSpeed: sec must be a number, got '..type(_sec))
-    globalLoop.speed = _sec
+    globalLoop.clockSpeed = _sec
+end
+
+function setLoopTimerSpeed(_sec)
+    assert(type(_sec) == 'number', 'setLoopTimerSpeed: sec must be a number, got '..type(_sec))
+    globalLoop.timerSpeed = _sec
 end
 
 function setLoopCallback(_event, _callback)
@@ -722,9 +774,13 @@ function setLoopCallback(_event, _callback)
     if _event == 1 then
         globalLoop.callbacks.onInit = _callback
     elseif _event == 2 then
-        globalLoop.callbacks.onEvent = _callback
-    elseif _event == 3 then
         globalLoop.callbacks.onClock = _callback
+    elseif _event == 3 then
+        globalLoop.callbacks.onEvent = _callback
+    elseif _event == 4 then
+        globalLoop.callbacks.onTimer = _callback
+    elseif _event == 5 then
+        globalLoop.callbacks.onMonitorChange = _callback
     end
 end
 
@@ -752,9 +808,29 @@ function loop(_group)
         bClear()
     end
     globalLoop.callbacks.onInit()
-    for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS BEFORE STARTING LOOP
-        if not globalLoop.group[key].hidden then
-            globalLoop.group[key]:draw()
+    if globalMonitorGroup.enabled then
+        globalLoop.callbacks.onMonitorChange(monitorName, event)
+        for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+            if not obj.hidden then
+                obj:draw()
+            end
+        end
+        local oldMonitor = globalMonitorName
+        for _, monitorName in pairs(globalMonitorGroup.list) do
+            setMonitor(monitorName)
+            globalLoop.callbacks.onMonitorChange(monitorName)
+            for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                if not obj.hidden then
+                    obj:draw()
+                end
+            end
+        end
+        setMonitor(oldMonitor)
+    else
+        for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+            if not obj.hidden then
+                obj:draw()
+            end
         end
     end
 
@@ -762,27 +838,29 @@ function loop(_group)
 
     while globalLoop.enabled do
 
-        local Timer = os.startTimer(globalLoop.speed / 2) -- START A TIMER
+        local Timer = os.startTimer(globalLoop.timerSpeed) -- START A TIMER
 
         local event = {os.pullEvent()} -- PULL EVENTS
 
         -- EVENT
-        if event[1] == 'monitor_touch' and event[2] == globalMonitorName then -- CHECK IF A BUTTON WAS PRESSED
+        if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or tableHas(globalMonitorGroup.list, event[2])) then -- CHECK IF A BUTTON WAS PRESSED
             for key in pairs(globalLoop.group) do
                 if not globalLoop.group[key].hidden then
                     globalLoop.group[key]:update(event[3], event[4], event)
                 end
             end
-        elseif event[1] == 'mouse_click' and globalMonitorName == 'term' then
+        elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or tableHas(globalMonitorGroup.list, 'term')) then
             for key in pairs(globalLoop.group) do
                 if not globalLoop.group[key].hidden then
                     globalLoop.group[key]:update(event[3], event[4], event)
                 end
             end
+        elseif event[1] == 'timer' then
+            globalLoop.callbacks.onTimer(event)
         end
 
         -- CLOCK
-        if os.clock() >= Clock + globalLoop.speed then
+        if os.clock() >= Clock + globalLoop.clockSpeed then
 
             Clock = os.clock()
 
@@ -791,9 +869,29 @@ function loop(_group)
                     bClear()
                 end
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
-                for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
-                    if not globalLoop.group[key].hidden then
-                        globalLoop.group[key]:draw()
+                if globalMonitorGroup.enabled then
+                    globalLoop.callbacks.onMonitorChange(monitorName, event)
+                    for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                        if not obj.hidden then
+                            obj:draw()
+                        end
+                    end
+                    local oldMonitor = globalMonitorName
+                    for _, monitorName in pairs(globalMonitorGroup.list) do
+                        setMonitor(monitorName)
+                        globalLoop.callbacks.onMonitorChange(monitorName, event)
+                        for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                            if not obj.hidden then
+                                obj:draw()
+                            end
+                        end
+                    end
+                    setMonitor(oldMonitor)
+                else
+                    for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                        if not obj.hidden then
+                            obj:draw()
+                        end
                     end
                 end
             else
@@ -807,9 +905,29 @@ function loop(_group)
                 bClear()
             end
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
-            for key in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
-                if not globalLoop.group[key].hidden then
-                    globalLoop.group[key]:draw()
+            if globalMonitorGroup.enabled then
+                globalLoop.callbacks.onMonitorChange(monitorName, event)
+                for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                    if not obj.hidden then
+                        obj:draw()
+                    end
+                end
+                local oldMonitor = globalMonitorName
+                for _, monitorName in pairs(globalMonitorGroup.list) do
+                    setMonitor(monitorName)
+                    globalLoop.callbacks.onMonitorChange(monitorName, event)
+                    for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                        if not obj.hidden then
+                            obj:draw()
+                        end
+                    end
+                end
+                setMonitor(oldMonitor)
+            else
+                for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                    if not obj.hidden then
+                        obj:draw()
+                    end
                 end
             end
         else
