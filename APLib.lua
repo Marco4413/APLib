@@ -1,5 +1,5 @@
 
-ver = '1.0.1'
+ver = '1.1'
 local globalMonitor = term
 local globalMonitorName = 'term'
 local globalMonitorGroup = {
@@ -27,6 +27,11 @@ local globalLoop = {
         onEvent = function() end,
         onTimer = function() end,
         onMonitorChange = function() end
+    },
+    events = {
+        tick = {},
+        key = {},
+        char = {}
     },
     group = {}
 }
@@ -812,7 +817,9 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
     
     --CREATE MEMO
     _newMemo = {
+        active = false,
         hidden = false,
+        optimized = false,
         lines = {},
         pos = {
             x1 = _x1,
@@ -823,7 +830,11 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
         cursor = {
             color = _cursorColor,
             visible = false,
-            blinkSpeed = 0.5,
+            blink = {
+                enabled = false,
+                clock = os.clock(),
+                speed = 0.5
+            },
             pos = {
                 char = 0,
                 line = 0
@@ -995,17 +1006,12 @@ function Memo:setCursorPos(_char, _line)
 
 end
 
-function Memo:edit(_loop, _event, _drawLoopGroup, _drawMonitorGroup)
-
-    assert(type(_loop) == 'boolean', 'Memo.edit: loop must be a boolean, got '..type(_loop))
-
-    if not _loop then -- IF LOOP ISN'T ENABLED THEN EVENT MUST BE SPECIFIED
-        assert(type(_event) == 'table', 'Memo.edit: event must be a table, got '..type(_event))
-    end
+function Memo:edit(_event)
 
     if not self.hidden then -- IF MEMO ISN'T HIDDEN
-        if not self.lines[1] then self:setCursorPos(0, 0); end -- IF FIRST LINE IS NULL THEN MAKE IT AN EMPTY STRING AND SELECT IT
-        local function edit(self, event)
+
+        local function edit(event)
+            if not self.lines[1] then self:setCursorPos(0, 0); end -- IF FIRST LINE IS NULL THEN MAKE IT AN EMPTY STRING AND SELECT IT
             self.callbacks.onEdit(self, event) -- CALL ON EDIT EVENT
 
             if self.cursor.limits.enabled then -- IF LIMITS ARE ACTIVE THEN
@@ -1213,73 +1219,34 @@ function Memo:edit(_loop, _event, _drawLoopGroup, _drawMonitorGroup)
                         end
                     end
                 end
-            
             end
             self:draw()
-            return true -- IF EDIT SUCCESFUL RETURN TRUE
+            return true
         end
 
-        self:draw()
+        if not self.optimized then
+            edit(_event)
+        else
+            while true do
+                local Timer = os.startTimer(self.cursor.blink.speed / 2)
 
-        local cursorVisibility
-        local Clock
-        local blinkClock
-        if _loop then
-            cursorVisibility = self.cursor.visible -- BACKUP CURSOR VISIBILITY STATE AND SETUP CLOCKS
-            Clock = os.clock()
-            blinkClock = os.clock()
-        end
+                _event = {os.pullEvent()}
 
-        while _loop do -- IF LOOP IS ACTIVE THEN
+                if not edit(_event) then
+                    break
+                end
 
-            local Timer = os.startTimer(globalLoop.timerSpeed) -- START A TIMER
-
-            _event = {os.pullEvent()} -- GET EVENTS
-
-            if not edit(self, _event) then -- IF THE SCREEN WAS PRESSED OUTSIDE THE MEMO THEN BREAK LOOP
-                break
-            end
-
-            if os.clock() >= blinkClock + self.cursor.blinkSpeed then -- BLINK :)
-
-                blinkClock = os.clock() -- UPDATE BLINKCLOCK
-                self.callbacks.onCursorBlink(self, _event) -- CALL ONCURSORBLINK CALLBACK
-                self.cursor.visible = not self.cursor.visible -- INVERT CURSOR VISIBILITY
-            end
-
-            if _event[1] == 'timer' then -- IF TIMER GAVE AN EVENT THEN
-                if _drawLoopGroup then -- IF DRAWLOOPGROUP THEN DO IT
-                    if _drawMonitorGroup and globalMonitorGroup.enabled then -- IF MONITOR GROUP WAS DECIDED TO BE DRAWN THEN DO IT
-                        globalLoop.callbacks.onMonitorChange(monitorName, _event)
-                        for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
-                            obj:draw()
-                        end
-                        local oldMonitor = globalMonitorName
-                        for _, monitorName in pairs(globalMonitorGroup.list) do
-                            setMonitor(monitorName)
-                            globalLoop.callbacks.onMonitorChange(monitorName, _event)
-                            for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
-                                obj:draw()
-                            end
-                        end
-                        setMonitor(oldMonitor)
-                    else -- DON'T DRAW MONITOR GROUP, DRAW ONLY ON GLOBALMONITOR
-                        for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
-                            obj:draw()
-                        end
+                if self.cursor.blink.enabled then
+                    if os.clock() >= self.cursor.blink.clock + self.cursor.blink.speed then -- BLINK :)
+                        self.cursor.blink.clock = os.clock() -- UPDATE BLINKCLOCK
+                        self.callbacks.onCursorBlink(self, _event) -- CALL ONCURSORBLINK CALLBACK
+                        self.cursor.visible = not self.cursor.visible -- INVERT CURSOR VISIBILITY
                     end
                 end
+
+                os.cancelTimer(Timer)
             end
-
-            os.cancelTimer(Timer) -- CANCEL TIMER
         end
-
-        if not _loop then
-            edit(self, _event)
-        end
-
-        if _loop then self.cursor.visible = cursorVisibility; end
-
     end
 end
 
@@ -1292,22 +1259,71 @@ function Memo:update(_x, _y, _event)
         if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
             -- IF THE MEMO WAS PRESSED CALL CALLBACK
             self.callbacks.onPress(self, _event)
+            self.active = true
+            self.cursor.blink.enabled = true
+            self.cursor.visible = true
+
+            if self.optimized then
+                self:edit(_event)
+                self.active = false
+                self.cursor.blink.enabled = false
+                self.cursor.visible = false
+            end
+
             return true
         else
+            self.active = false
+            self.cursor.blink.enabled = false
+            self.cursor.visible = false
             return false
         end
     end
+    self.active = false
     return false
+end
+
+function Memo:tick(_event)
+    if not self.hidden then
+        if not self.optimized then
+            if self.cursor.blink.enabled then
+                if os.clock() >= self.cursor.blink.clock + self.cursor.blink.speed then -- BLINK :)
+                    self.cursor.blink.clock = os.clock() -- UPDATE BLINKCLOCK
+                    self.callbacks.onCursorBlink(self, _event) -- CALL ONCURSORBLINK CALLBACK
+                    self.cursor.visible = not self.cursor.visible -- INVERT CURSOR VISIBILITY
+                end
+            end
+        end
+    end
+end
+
+function Memo:key(_event)
+    if not self.hidden then
+        if not self.optimized then
+            if self.active then
+                self:edit(_event)
+            end
+        end
+    end
+end
+
+function Memo:char(_event)
+    if not self.hidden then
+        if not self.optimized then
+            if self.active then
+                self:edit(_event)
+            end
+        end
+    end
+end
+
+function Memo:optimized(_bool)
+    assert(type(_bool) == 'boolean', 'Memo.optimized: bool must be a boolean, got '..type(_bool))
+    self.optimized = _bool
 end
 
 function Memo:limits(_bool)
     assert(type(_bool) == 'boolean', 'Memo.limits: bool must be a boolean, got '..type(_bool))
     self.cursor.limits.enabled = _bool
-end
-
-function Memo:hideCursor(_bool)
-    assert(type(_bool) == 'boolean', 'Memo.hideCursor: bool must be a boolean, got '..type(_bool))
-    self.cursor.visible = not _bool
 end
 
 function Memo:hide(_bool)
@@ -1375,6 +1391,27 @@ function loop(_group)
     if globalLoop.autoClear then
         bClear()
     end
+
+    
+    --[[ events = {
+        tick = {},
+        mouse_click = {},
+        key = {},
+        char = {} ]]
+
+    for _, obj in pairs(globalLoop.group) do
+        if obj.tick then
+            table.insert(globalLoop.events.tick, obj)
+        end
+        if obj.key then
+            table.insert(globalLoop.events.key, obj)
+        end
+        if obj.char then
+            table.insert(globalLoop.events.char, obj)
+        end
+    end
+
+
     globalLoop.callbacks.onInit()
     if globalMonitorGroup.enabled then
         globalLoop.callbacks.onMonitorChange(monitorName)
@@ -1413,6 +1450,14 @@ function loop(_group)
             for _, obj in pairs(globalLoop.group) do
                 obj:update(event[3], event[4], event)
             end
+        elseif event[1] == 'key' then
+            for _, obj in pairs(globalLoop.events.key) do
+                obj:key(event)
+            end
+        elseif event[1] == 'char' then
+            for _, obj in pairs(globalLoop.events.char) do
+                obj:char(event)
+            end
         elseif event[1] == 'timer' then
             globalLoop.callbacks.onTimer(event)
         end
@@ -1449,6 +1494,11 @@ function loop(_group)
             else
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
             end
+        end
+
+        --OBJ EVENT TICK
+        for _, obj in pairs(globalLoop.events.tick) do
+            obj:tick(event)
         end
 
         --EVENT DRAW
