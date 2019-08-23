@@ -1,5 +1,5 @@
 
-ver = '1.0'
+ver = '1.0.1'
 local globalMonitor = term
 local globalMonitorName = 'term'
 local globalMonitorGroup = {
@@ -1247,17 +1247,17 @@ function Memo:edit(_loop, _event, _drawLoopGroup, _drawMonitorGroup)
                 self.cursor.visible = not self.cursor.visible -- INVERT CURSOR VISIBILITY
             end
 
-            if event[1] == 'timer' then -- IF TIMER GAVE AN EVENT THEN
+            if _event[1] == 'timer' then -- IF TIMER GAVE AN EVENT THEN
                 if _drawLoopGroup then -- IF DRAWLOOPGROUP THEN DO IT
                     if _drawMonitorGroup and globalMonitorGroup.enabled then -- IF MONITOR GROUP WAS DECIDED TO BE DRAWN THEN DO IT
-                        globalLoop.callbacks.onMonitorChange(monitorName, event)
+                        globalLoop.callbacks.onMonitorChange(monitorName, _event)
                         for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
                             obj:draw()
                         end
                         local oldMonitor = globalMonitorName
                         for _, monitorName in pairs(globalMonitorGroup.list) do
                             setMonitor(monitorName)
-                            globalLoop.callbacks.onMonitorChange(monitorName)
+                            globalLoop.callbacks.onMonitorChange(monitorName, _event)
                             for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
                                 obj:draw()
                             end
@@ -1377,7 +1377,7 @@ function loop(_group)
     end
     globalLoop.callbacks.onInit()
     if globalMonitorGroup.enabled then
-        globalLoop.callbacks.onMonitorChange(monitorName, event)
+        globalLoop.callbacks.onMonitorChange(monitorName)
         for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
             obj:draw()
         end
