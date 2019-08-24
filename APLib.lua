@@ -1,5 +1,5 @@
 
-ver = '1.1'
+ver = '1.2'
 local globalMonitor = term
 local globalMonitorName = 'term'
 local globalMonitorGroup = {
@@ -33,7 +33,10 @@ local globalLoop = {
         key = {},
         char = {}
     },
-    group = {}
+    group = {
+        general = {},
+        menu = {}
+    }
 }
 
 --GLOBALCALLBACKS
@@ -64,6 +67,10 @@ event = {
         onDraw = 1,
         onPress = 2
     },
+    menu = {
+        onDraw = 1,
+        onPress = 2
+    },
     percentagebar = {
         onDraw = 1,
         onPress = 2
@@ -72,7 +79,9 @@ event = {
         onDraw = 1,
         onPress = 2,
         onEdit = 3,
-        onCursorBlink = 4
+        onCursorBlink = 4,
+        onActivated = 5,
+        onDeactivated = 6
     },
     loop = {
         onInit = 1,
@@ -626,6 +635,151 @@ Button.__index = Button
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
+Menu = {}
+
+function Menu.new(_x1, _y1, _x2, _y2, _color)
+    
+    assert(type(_x1) == 'number', 'Menu.new: x1 must be a number, got '..type(_x1))
+    assert(type(_y1) == 'number', 'Menu.new: y1 must be a number, got '..type(_y1))
+    assert(type(_x2) == 'number', 'Menu.new: x2 must be a number, got '..type(_x2))
+    assert(type(_y2) == 'number', 'Menu.new: y2 must be a number, got '..type(_y2))
+    
+    --FIX THINGS
+    _color = tonumber(_color)
+
+    --CHECK THINGS
+    if not _color then
+        _color = globalColor
+    end
+
+    --CREATE MENU
+    _newMenu = {
+        color = _color,
+        objs = {},
+        hidden = true,
+        pos = {
+            x1 = _x1,
+            y1 = _y1,
+            x2 = _x2,
+            y2 = _y2
+        },
+        callbacks = {
+            onDraw = function() end,
+            onPress = function() end
+        }
+    }
+    setmetatable(_newMenu, Menu) --SET MENU METATABLE
+    return _newMenu
+end
+
+function Menu:draw()
+    if not self.hidden then
+        self.callbacks.onDraw(self)
+
+        local oldRectType = globalRectangleType
+        local oldColor = globalColor
+        
+        --SETTING THINGS TO MENU SETTINGS
+        setColor(self.color)
+
+        --DRAWING MENU
+        rectangle(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2)
+        
+        for key, obj in pairs(self.objs) do -- DRAW OBJs THAT ARE ATTACHED TO IT
+            obj:draw()
+        end
+
+        --REVERTING ALL CHANGES MADE BEFORE
+        setColor(oldColor)
+    end
+end
+
+function Menu:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'Menu.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onDraw = _callback
+    elseif _event == 2 then
+        self.callbacks.onPress = _callback
+    end
+end
+
+function Menu:set(_table, _fillMenu)
+    for key, obj in pairs(_table) do
+        assert(getmetatable(obj) == Button, 'Menu.set: you can only attach buttons to menus.')
+    end
+
+    local memo_width = math.abs(self.pos.x2 - self.pos.x1) + 1 -- GET MEMO WIDTH & HEIGHT
+    local memo_height = math.abs(self.pos.y2 - self.pos.y1) + 1
+
+    for i=memo_height + 1, #_table do -- REMOVE EXTRA OBJs
+        table.remove(_table, memo_height + 1)
+    end
+
+    local objHeight = math.floor(memo_height / #_table) -- GET OBJs HEIGHT NEEDED TO FILL SCREEN
+
+    local _menuX1, _menuX2, _menuY1, _menuY2
+
+    if self.pos.x1 > self.pos.x2 then -- SORT MEMO POS
+        _menuX1 = self.pos.x2
+        _menuX2 = self.pos.x1
+    else
+        _menuX1 = self.pos.x1
+        _menuX2 = self.pos.x2
+    end
+
+    if self.pos.y1 > self.pos.y2 then
+        _menuY1 = self.pos.y2
+        _menuY2 = self.pos.y1
+    else
+        _menuY1 = self.pos.y1
+        _menuY2 = self.pos.y2
+    end
+
+    for key, obj in pairs(_table) do -- SET OBJ POS TO BE IN THE MENU
+        obj.pos.x1 = _menuX1
+        obj.pos.x2 = _menuX2
+
+        if _fillMenu then -- TRY TO FILL MENU WITH OBJs
+            obj.pos.y1 = _menuY1 + (key - 1) * objHeight
+            obj.pos.y2 = _menuY1 + (key - 1) * objHeight + objHeight - 1
+        else
+            obj.pos.y1 = _menuY1 + (key - 1)
+            obj.pos.y2 = _menuY1 + (key - 1)
+        end
+
+        obj.text = string.sub(obj.text, 0, memo_width)
+        table.insert(self.objs, obj)
+    end
+end
+
+function Menu:update(_x, _y, _event)
+    assert(type(_x) == 'number', 'Menu.update: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Menu.update: y must be a number, got '..type(_y))
+
+    if not self.hidden then
+        if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
+            -- IF THE MENU WAS PRESSED CALL CALLBACK
+            self.callbacks.onPress(self, _event)
+            for key, obj in pairs(self.objs) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
+                obj:update(_x, _y, _event)
+            end
+            return true
+        else
+            return false
+        end
+    end
+    return false
+end
+
+function Menu:hide(_bool)
+    assert(type(_bool) == 'boolean', 'Menu.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
+Menu.__index = Menu
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
 PercentageBar = {}
 
 function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _valueColor, _backgroundValueColor, _barColor, _backgroundBarColor)
@@ -841,8 +995,8 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
             },
             limits = {
                 enabled = true,
-                char = math.abs(_x2 - _x1),
-                line = math.abs(_y2 - _y1)
+                char = math.abs(_x2 - _x1) + 1,
+                line = math.abs(_y2 - _y1) + 1
             }
         },
         colors = {
@@ -854,7 +1008,9 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
             onDraw = function() end,
             onPress = function() end,
             onEdit = function() end,
-            onCursorBlink = function() end
+            onCursorBlink = function() end,
+            onActivated = function() end,
+            onDeactivated = function() end
         }
     }
 
@@ -963,12 +1119,16 @@ function Memo:setCallback(_event, _callback)
         self.callbacks.onEdit = _callback
     elseif _event == 4 then
         self.callbacks.onCursorBlink = _callback
+    elseif _event == 5 then
+        self.callbacks.onActivated = _callback
+    elseif _event == 6 then
+        self.callbacks.onDeactivated = _callback
     end
 end
 
 function Memo:setCursorLimits(_char, _line)
-    assert(type(_char) == 'number', 'Memo.setCursorLimits: char must be a number, got '..type(_char))
-    assert(type(_line) == 'number', 'Memo.setCursorLimits: line must be a number, got '..type(_line))
+    assert(type(_char) == 'number' or type(_char) == 'nil', 'Memo.setCursorLimits: char must be a number or nil, got '..type(_char))
+    assert(type(_line) == 'number' or type(_line) == 'nil', 'Memo.setCursorLimits: line must be a number or nil, got '..type(_line))
     self.cursor.limits.char = _char
     self.cursor.limits.line = _line
 end
@@ -985,17 +1145,21 @@ function Memo:setCursorPos(_char, _line)
     end
     
     if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ON
-        if _char > self.cursor.limits.char then -- IF CHAR IS MORE THAN THE LIMIT SET IT TO IT
-            _char = self.cursor.limits.char
+        if self.cursor.limits.char then
+            if _char > self.cursor.limits.char then -- IF CHAR IS MORE THAN THE LIMIT SET IT TO IT
+                _char = self.cursor.limits.char - 1
+            end
         end
-        if _line > self.cursor.limits.line then -- IF LINE IS MORE THAN THE LIMIT SET IT TO IT
-            _line = self.cursor.limits.line
+        if self.cursor.limits.line then
+            if _line > self.cursor.limits.line then -- IF LINE IS MORE THAN THE LIMIT SET IT TO IT
+                _line = self.cursor.limits.line - 1
+            end
         end
     end
 
     if not self.lines[_line + 1] then -- IF SELECTED LINE DOESN'T EXISTS
         for i=#self.lines + 1, _line + 1 do -- CREATE EMPTY LINES UNTILL LINE POS
-            self.lines[i] = ''
+            table.insert(self.lines, '')
         end
     end
     if _char > #self.lines[_line + 1] then -- IF CHAR POS IS MORE THAN THE LINE LENGTH THEN SET CHAR TO IT
@@ -1015,14 +1179,18 @@ function Memo:edit(_event)
             self.callbacks.onEdit(self, event) -- CALL ON EDIT EVENT
 
             if self.cursor.limits.enabled then -- IF LIMITS ARE ACTIVE THEN
-                if #self.lines > self.cursor.limits.line then -- IF LINES ARE MORE THAN THE ONES AVAILABLE THEN DELETE THEM
-                    for i=self.cursor.limits.line + 1, #self.lines + 1 do
-                        table.remove(self.lines, self.cursor.limits.line + 2)
+                if self.cursor.limits.line then
+                    if #self.lines > self.cursor.limits.line then -- IF LINES ARE MORE THAN THE ONES AVAILABLE THEN DELETE THEM
+                        for i=self.cursor.limits.line + 1, #self.lines + 1 do
+                            table.remove(self.lines, self.cursor.limits.line)
+                        end
                     end
                 end
                 for key, value in pairs(self.lines) do -- IF A LINE CONTAINS MORE CHARS THAN ALLOWED THEN DELETE THE EXTRA ONES
-                    if #value > self.cursor.limits.char + 1 then
-                        self.lines[key] = value:sub(1, self.cursor.limits.char + 1)
+                    if self.cursor.limits.char then
+                        if #value > self.cursor.limits.char then
+                            self.lines[key] = value:sub(1, self.cursor.limits.char)
+                        end
                     end
                 end
             end
@@ -1043,7 +1211,19 @@ function Memo:edit(_event)
                 local cursorLine = self.lines[self.cursor.pos.line + 1] -- GET LINE WHERE THE CURSOR IS LOCATED
 
                 if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                    if self.cursor.pos.char - 1 < self.cursor.limits.char then -- IF CURSOR IS IN THE LIMITS THEN
+                    if self.cursor.limits.char then
+                        if self.cursor.pos.char < self.cursor.limits.char then -- IF CURSOR IS IN THE LIMITS THEN
+                            self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- ADD CHAR TO THE LINE
+                                0,
+                                self.cursor.pos.char
+                            )..event[2]..cursorLine:sub(
+                                self.cursor.pos.char + 1,
+                                #cursorLine
+                            )
+
+                            self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR BY ONE ON THE X AXIS
+                        end
+                    else
                         self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- ADD CHAR TO THE LINE
                             0,
                             self.cursor.pos.char
@@ -1071,7 +1251,23 @@ function Memo:edit(_event)
 
                 if event[2] == 28 then -- ENTER KEY
                     if self.cursor.limits.enabled then -- IF LIMITS ARE ENABLED THEN
-                        if #self.lines <= self.cursor.limits.line then -- IF THE NEXT LINE IS ALLOWED THEN
+                        if self.cursor.limits.line then
+                            if #self.lines + 1 <= self.cursor.limits.line then -- IF THE NEXT LINE IS ALLOWED THEN
+                                table.insert(self.lines, self.cursor.pos.line + 2, '') -- CREATE A NEW LINE
+
+                                self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
+                                    0,
+                                    self.cursor.pos.char
+                                )
+                                self.lines[self.cursor.pos.line + 2] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
+                                    self.cursor.pos.char + 1,
+                                    #cursorLine
+                                )..self.lines[self.cursor.pos.line + 2]
+                                
+                                self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR POS LINE TO NEW LINE
+                                self.cursor.pos.char = 0 -- SET CURSOR POS CHAR TO 0
+                            end
+                        else
                             table.insert(self.lines, self.cursor.pos.line + 2, '') -- CREATE A NEW LINE
 
                             self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
@@ -1114,7 +1310,17 @@ function Memo:edit(_event)
                     elseif self.cursor.pos.line > 0 then -- IF CURSOR POS IS AT THE BEGINNING OF THE LINE AND NOT ON THE FIRST ONE THEN
                         local _endOfPreviousLine = #self.lines[self.cursor.pos.line] -- GET THE LINE BEFORE THE ONE WHERE THE CURSOR IS
                         if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                            if _endOfPreviousLine + #cursorLine <= self.cursor.limits.char + 1 then -- IF PREV LINE + CURR LINE IS LESS THAN CURSOR LIMITS THEN
+                            if self.cursor.limits.char then
+                                if _endOfPreviousLine + #cursorLine <= self.cursor.limits.char then -- IF PREV LINE + CURR LINE IS LESS THAN CURSOR LIMITS THEN
+                                    self.lines[self.cursor.pos.line] = self.lines[self.cursor.pos.line]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
+                                        self.cursor.pos.char + 1,
+                                        #cursorLine
+                                    )
+                                    table.remove(self.lines, self.cursor.pos.line + 1) -- REMOVE CURRLINE
+                                    self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
+                                    self.cursor.pos.char = _endOfPreviousLine -- SELECT END OF THE PREV LINE
+                                end
+                            else
                                 self.lines[self.cursor.pos.line] = self.lines[self.cursor.pos.line]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
                                     self.cursor.pos.char + 1,
                                     #cursorLine
@@ -1138,7 +1344,12 @@ function Memo:edit(_event)
                     if self.cursor.pos.char > #cursorLine - 1 then -- IF CURSOR IS AT THE END OF THE LINE THEN
                         if self.lines[self.cursor.pos.line + 2] then -- IF THERE'S A NEXT LINE THEN
                             if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                                if #self.lines[self.cursor.pos.line + 2] + #cursorLine <= self.cursor.limits.char + 1 then -- IF CURR LINE + NEXT LINE ISN'T GREATER THAN CURSOR LIMITS THEN
+                                if self.cursor.limits.char then
+                                    if #self.lines[self.cursor.pos.line + 2] + #cursorLine <= self.cursor.limits.char then -- IF CURR LINE + NEXT LINE ISN'T GREATER THAN CURSOR LIMITS THEN
+                                        self.lines[self.cursor.pos.line + 1] = cursorLine..self.lines[self.cursor.pos.line + 2] -- SET CURR LINE TO CURRLINE + NEXTLINE
+                                        table.remove(self.lines, self.cursor.pos.line + 2) -- REMOVE NEXT LINE
+                                    end
+                                else
                                     self.lines[self.cursor.pos.line + 1] = cursorLine..self.lines[self.cursor.pos.line + 2] -- SET CURR LINE TO CURRLINE + NEXTLINE
                                     table.remove(self.lines, self.cursor.pos.line + 2) -- REMOVE NEXT LINE
                                 end
@@ -1172,7 +1383,11 @@ function Memo:edit(_event)
                 elseif event[2] == 205 then -- ARROW KEY RIGHT
                     if self.cursor.pos.char < #cursorLine then -- IF CURSOR ISN'T AT THE END OF TEXT IN THE LINE THEN
                         if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                            if self.cursor.pos.char < self.cursor.limits.char + 1 then -- IF THE CURSOR DOESN'T GO OUT OF THE LIMITS IF MOVED TO THE RIGHT THEN DO IT
+                            if self.cursor.limits.char then
+                                if self.cursor.pos.char < self.cursor.limits.char then -- IF THE CURSOR DOESN'T GO OUT OF THE LIMITS IF MOVED TO THE RIGHT THEN DO IT
+                                    self.cursor.pos.char = self.cursor.pos.char + 1
+                                end
+                            else
                                 self.cursor.pos.char = self.cursor.pos.char + 1
                             end
                         else
@@ -1181,7 +1396,12 @@ function Memo:edit(_event)
                     else
                         if self.lines[self.cursor.pos.line + 2] then -- IF A NEXT LINE EXISTS THEN
                             if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                                if self.cursor.pos.line < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
+                                if self.cursor.limits.line then
+                                    if self.cursor.pos.line + 1 < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
+                                        self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
+                                        self.cursor.pos.char = 0
+                                    end
+                                else
                                     self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
                                     self.cursor.pos.char = 0
                                 end
@@ -1205,7 +1425,14 @@ function Memo:edit(_event)
                 elseif event[2] == 208 then -- ARROW KEY DOWN
                     if self.lines[self.cursor.pos.line + 2] then -- IF A NEXT LINE EXISTS THEN
                         if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                            if self.cursor.pos.line < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
+                            if self.cursor.limits.line then
+                                if self.cursor.pos.line + 1 < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
+                                    self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
+                                    if self.cursor.pos.char > #self.lines[self.cursor.pos.line + 1] then -- IF CURSOR POS CHAR IS GREATER THEN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
+                                        self.cursor.pos.char = #self.lines[self.cursor.pos.line + 1]
+                                    end
+                                end
+                            else
                                 self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
                                 if self.cursor.pos.char > #self.lines[self.cursor.pos.line + 1] then -- IF CURSOR POS CHAR IS GREATER THEN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
                                     self.cursor.pos.char = #self.lines[self.cursor.pos.line + 1]
@@ -1227,7 +1454,8 @@ function Memo:edit(_event)
         if not self.optimized then
             edit(_event)
         else
-            while true do
+            self.active = true
+            while self.active do
                 local Timer = os.startTimer(self.cursor.blink.speed / 2)
 
                 _event = {os.pullEvent()}
@@ -1260,25 +1488,31 @@ function Memo:update(_x, _y, _event)
             -- IF THE MEMO WAS PRESSED CALL CALLBACK
             self.callbacks.onPress(self, _event)
             self.active = true
-            self.cursor.blink.enabled = true
-            self.cursor.visible = true
+            self.callbacks.onActivated(self, _event)
 
             if self.optimized then
+                self.cursor.blink.enabled = true
+                self.cursor.visible = true
                 self:edit(_event)
                 self.active = false
+                self.callbacks.onDeactivated(self, _event)
                 self.cursor.blink.enabled = false
                 self.cursor.visible = false
             end
 
             return true
         else
-            self.active = false
-            self.cursor.blink.enabled = false
-            self.cursor.visible = false
+            if self.active then
+                self.active = false
+                self.callbacks.onDeactivated(self, _event)
+            end
             return false
         end
     end
-    self.active = false
+    if self.active then
+        self.active = false
+        self.callbacks.onDeactivated(self, _event)
+    end
     return false
 end
 
@@ -1316,7 +1550,7 @@ function Memo:char(_event)
     end
 end
 
-function Memo:optimized(_bool)
+function Memo:optimize(_bool)
     assert(type(_bool) == 'boolean', 'Memo.optimized: bool must be a boolean, got '..type(_bool))
     self.optimized = _bool
 end
@@ -1380,26 +1614,33 @@ function stopLoop()
     globalLoop.callbacks.onEvent = function() end -- CLEARS LOOP CALLBACKS
     globalLoop.callbacks.onClock = function() end
     
-    globalLoop.group = {} --CLEAR LOOP GROUP
+    globalLoop.events = {
+        tick = {},
+        key = {},
+        char = {}
+    }
+
+    globalLoop.group.menu = {}
+    globalLoop.group.general = {} --CLEAR LOOP GROUP
 end
 
 function loop(_group)
     assert(type(_group) == 'table', 'Loop: group must be a table, got '..type(_group))
     globalLoop.enabled = true -- ACTIVATE LOOP
-    globalLoop.group = _group -- SET GLOBAL LOOP GROUP
+    
+    for key, obj in pairs(_group) do -- SET GLOBAL LOOP GROUP
+        if getmetatable(obj) == Menu then
+            table.insert(globalLoop.group.menu, obj)
+        else
+            table.insert(globalLoop.group.general, obj)
+        end
+    end
 
     if globalLoop.autoClear then
         bClear()
     end
 
-    
-    --[[ events = {
-        tick = {},
-        mouse_click = {},
-        key = {},
-        char = {} ]]
-
-    for _, obj in pairs(globalLoop.group) do
+    for _, obj in pairs(globalLoop.group.general) do
         if obj.tick then
             table.insert(globalLoop.events.tick, obj)
         end
@@ -1415,20 +1656,29 @@ function loop(_group)
     globalLoop.callbacks.onInit()
     if globalMonitorGroup.enabled then
         globalLoop.callbacks.onMonitorChange(monitorName)
-        for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+        for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+            obj:draw()
+        end
+        for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
             obj:draw()
         end
         local oldMonitor = globalMonitorName
         for _, monitorName in pairs(globalMonitorGroup.list) do
             setMonitor(monitorName)
             globalLoop.callbacks.onMonitorChange(monitorName)
-            for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+            for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+                obj:draw()
+            end
+            for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
                 obj:draw()
             end
         end
         setMonitor(oldMonitor)
     else
-        for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+        for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+            obj:draw()
+        end
+        for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
             obj:draw()
         end
     end
@@ -1443,19 +1693,39 @@ function loop(_group)
 
         -- EVENT
         if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
-            for _, obj in pairs(globalLoop.group) do
-                obj:update(event[3], event[4], event)
+            local wasMenuPressed = false
+            for _, obj in pairs(globalLoop.group.menu) do -- UPDATE MENUs
+                if obj:update(event[3], event[4], event) then
+                    if not wasMenuPressed then
+                        wasMenuPressed = true
+                    end
+                end
+            end
+            if not wasMenuPressed then
+                for _, obj in pairs(globalLoop.group.general) do -- UPDATE OBJs
+                    obj:update(event[3], event[4], event)
+                end
             end
         elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, 'term'))) then
-            for _, obj in pairs(globalLoop.group) do
-                obj:update(event[3], event[4], event)
+            local wasMenuPressed = false
+            for _, obj in pairs(globalLoop.group.menu) do -- UPDATE MENUs
+                if obj:update(event[3], event[4], event) then
+                    if not wasMenuPressed then
+                        wasMenuPressed = true
+                    end
+                end
+            end
+            if not wasMenuPressed then
+                for _, obj in pairs(globalLoop.group.general) do -- UPDATE OBJs
+                    obj:update(event[3], event[4], event)
+                end
             end
         elseif event[1] == 'key' then
-            for _, obj in pairs(globalLoop.events.key) do
+            for _, obj in pairs(globalLoop.events.key) do -- CALL OBJs KEY EVENTS
                 obj:key(event)
             end
         elseif event[1] == 'char' then
-            for _, obj in pairs(globalLoop.events.char) do
+            for _, obj in pairs(globalLoop.events.char) do -- CALL OBJs CHAR EVENTS
                 obj:char(event)
             end
         elseif event[1] == 'timer' then
@@ -1474,20 +1744,29 @@ function loop(_group)
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
                 if globalMonitorGroup.enabled then
                     globalLoop.callbacks.onMonitorChange(monitorName, event)
-                    for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                    for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+                        obj:draw()
+                    end
+                    for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
                         obj:draw()
                     end
                     local oldMonitor = globalMonitorName
                     for _, monitorName in pairs(globalMonitorGroup.list) do
                         setMonitor(monitorName)
                         globalLoop.callbacks.onMonitorChange(monitorName, event)
-                        for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                        for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+                            obj:draw()
+                        end
+                        for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
                             obj:draw()
                         end
                     end
                     setMonitor(oldMonitor)
                 else
-                    for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                    for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+                        obj:draw()
+                    end
+                    for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
                         obj:draw()
                     end
                 end
@@ -1509,20 +1788,29 @@ function loop(_group)
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
             if globalMonitorGroup.enabled then
                 globalLoop.callbacks.onMonitorChange(monitorName, event)
-                for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+                    obj:draw()
+                end
+                for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
                     obj:draw()
                 end
                 local oldMonitor = globalMonitorName
                 for _, monitorName in pairs(globalMonitorGroup.list) do
                     setMonitor(monitorName)
                     globalLoop.callbacks.onMonitorChange(monitorName, event)
-                    for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                    for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+                        obj:draw()
+                    end
+                    for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
                         obj:draw()
                     end
                 end
                 setMonitor(oldMonitor)
             else
-                for _, obj in pairs(globalLoop.group) do -- DRAW ALL BUTTONS
+                for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+                    obj:draw()
+                end
+                for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
                     obj:draw()
                 end
             end
