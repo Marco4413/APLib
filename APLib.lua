@@ -1,5 +1,5 @@
 
-ver = '1.3.1'
+ver = '1.4'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -1633,24 +1633,26 @@ function setLoopGroup(_groupName)
     globalLoop.selectedGroup = _groupName
 end
 
-function stopLoop()
-    globalLoop.enabled = false --STOP LOOP
-
+function resetLoopSettings()
     globalLoop.callbacks.onInit = function() end
     globalLoop.callbacks.onEvent = function() end -- CLEARS LOOP CALLBACKS
     globalLoop.callbacks.onClock = function() end
+
+    globalLoop.selectedGroup = 'none'
+    globalLoop.group = {
+        none = {},
+        LIBPrivate = globalLoop.group.LIBPrivate
+    } --CLEARS LOOP GROUPS
+end
+
+function stopLoop()
+    globalLoop.enabled = false --STOP LOOP
     
     globalLoop.events = {
         tick = {},
         key = {},
         char = {}
     }
-
-    globalLoop.selectedGroup = 'none'
-    globalLoop.group = {
-        none = {},
-        LIBPrivate = globalLoop.group.LIBPrivate
-    } --CLEAR LOOP GROUP
 end
 
 function loop()

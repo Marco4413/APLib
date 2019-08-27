@@ -311,6 +311,7 @@ mbExit:setCallback(
             self.state = false
             self:draw()
             APLib.stopLoop()
+            APLib.resetLoopSettings()
         end
     end
 )
@@ -445,10 +446,10 @@ end
 
 APLib.setMonitor('term')
 
-APLib.drawOnLoopEvent()
+APLib.setLoopClockSpeed(0.1)
+APLib.drawOnLoopClock()
 APLib.addLoopGroup('main', objs)
 APLib.setLoopGroup('main')
 APLib.loop()
 
 drawBackgroundToAllScreens(colors.black)
-
