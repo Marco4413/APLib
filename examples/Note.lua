@@ -1,15 +1,66 @@
-os.loadAPI('APLib/APLib.lua')
+
+--//INIT\\--
+if type(settings.get('APLibPath')) == 'string' then
+    if fs.exists(tostring(settings.get('APLibPath'))) then
+        os.loadAPI(settings.get('APLibPath'))
+    else
+        error("Couldn't open APLib through path: "..tostring(
+                settings.get('APLibPath')
+            )..";\n remember that if you move the lib's folder\n you must set it up again via 'LIBFILE setup'")
+    end
+else
+    error("Couldn't open APLib through path: "..tostring(
+        settings.get('APLibPath')
+    )..";\n probably you haven't completed Lib setup\n via 'LIBFILE setup' or the setup failed")
+end
+
+local tArgs = { ... }
+
+if table.maxn(tArgs) > 0 then
+    if tArgs[1] then
+        tArgs[1] = string.lower(tArgs[1])
+        if tArgs[1] == 'open' then
+            if tArgs[2] then
+                OpenNotes(mMemo, tostring(tArgs[2]))
+            end
+        elseif tArgs[1] == 'multi' then
+            if tArgs[2] then
+                if tostring(peripheral.getType(tArgs[2])) == 'monitor' then
+                    table.remove(tArgs, 1)
+                    APLib.setMonitorGroup(tArgs)
+                    APLib.setMonitorGroupEnabled(true)
+                end
+            end
+        elseif tArgs[1] == 'path' then
+            if tArgs[2] then
+                if tArgs[2]:sub(1, 1) ~= '/' then tArgs[2] = '/'..tArgs[2]; end
+                if tArgs[2]:sub(#tArgs[2], #tArgs[2]) ~= '/' then tArgs[2] = tArgs[2]..'/'; end
+
+                settings.set('NotesPath', tArgs[2])
+                print("Path succesfully changed to '"..tostring(settings.get('NotesPath')).."'")
+                sleep(2)
+            end
+        end
+    end
+end
+
+--//-----------------------------------------\\--
 
 local shapeColor = colors.lightGray
 local textColor = colors.white
 local bgTextColor = colors.gray
 local bgColor = colors.gray
 
-local defPath = "/Documents/"
-local CurrFile = defPath.."new"
-local File
+local defPath
 
-local tArgs = { ... }
+if type(settings.get('NotesPath')) == 'string' then
+    defPath = settings.get('NotesPath')
+else
+    defPath = '/Documents/'
+end
+
+local CurrFile = defPath..'new'
+local File
 
 APLib.setColor(shapeColor)
 APLib.setTextColor(textColor)
@@ -424,25 +475,6 @@ APLib.setLoopCallback(
         end
     end
 )
-
-if table.maxn(tArgs) > 0 then
-    if tArgs[1] then
-        tArgs[1] = string.lower(tArgs[1])
-        if tArgs[1] == 'open' then
-            if tArgs[2] then
-                OpenNotes(mMemo, tostring(tArgs[2]))
-            end
-        elseif tArgs[1] == 'multi' then
-            if tArgs[2] then
-                if tostring(peripheral.getType(tArgs[2])) == 'monitor' then
-                    table.remove(tArgs, 1)
-                    APLib.setMonitorGroup(tArgs)
-                    APLib.setMonitorGroupEnabled(true)
-                end
-            end
-        end
-    end
-end
 
 APLib.setMonitor('term')
 

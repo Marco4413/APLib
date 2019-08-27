@@ -1,5 +1,5 @@
 
-ver = '1.4'
+ver = '1.4.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -1780,6 +1780,18 @@ function loop()
 end
 
 local tArgs = { ... }
-if tArgs[1] == 'ver' then
-    print('Lib version: '..ver)
+if table.maxn(tArgs) > 0 then
+    if tArgs[1] then
+        tArgs[1] = string.lower(tArgs[1])
+        if tArgs[1] == 'ver' then
+            print('Lib version: '..ver)
+        elseif tArgs[1] == 'setup' then
+            if shell then
+                settings.set('APLibPath', shell.getRunningProgram())
+                print('Setup completed!\nAPLibPath: '..tostring(settings.get('APLibPath')))
+            else
+                error("Setup failed, shell API not available!")
+            end
+        end
+    end
 end
