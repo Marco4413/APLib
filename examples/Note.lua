@@ -46,6 +46,7 @@ mFileMenu:set(mFileButtons)
 
 -- LABELS
 local lLines = APLib.Label.new(9, 1, 'Lines: '..#mMemo.lines)
+local lCursorPos = APLib.Label.new(21, 1, 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')')
 
 local lPath = APLib.Label.new(1, 19, CurrFile)
 
@@ -350,11 +351,22 @@ mMemo:setCallback(
 mMemo:setCallback(
     APLib.event.memo.onEdit,
     function (self, event)
+        if event then
+            if event[1] == 'mouse_scroll' then
+                if event[2] == 1 then
+                    mMemo:setCursorPos(mMemo.cursor.pos.char, mMemo.cursor.pos.line + event[2])
+                elseif event[2] == -1 then
+                    mMemo:setCursorPos(mMemo.cursor.pos.char, mMemo.cursor.pos.line + event[2])
+                end
+            end
+        end
         APLib.setColor(bgColor)
-        APLib.rectangle(lLines.pos.x, lLines.pos.y, lLines.pos.x + #lLines.text - 1, lLines.pos.y)
+        APLib.rectangle(lLines.pos.x, lLines.pos.y, 50, lLines.pos.y)
         APLib.setColor(shapeColor)
         lLines.text = 'Lines: '..#self.lines
         lLines:draw()
+        lCursorPos.text = 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')'
+        lCursorPos:draw()
     end
 )
 
@@ -372,7 +384,7 @@ mbmInput:setCallback(
 --//-----------------------------------------\\--
 
 -- MAIN PROGRAM
-local objs = {mFileMenu, mbFile, bCompact, mMemo, lLines, lPath}
+local objs = {mFileMenu, mbFile, bCompact, mMemo, lLines, lCursorPos, lPath}
 
 APLib.setLoopCallback(
     APLib.event.loop.onInit,
@@ -391,9 +403,24 @@ APLib.setLoopCallback(
         APLib.rectangle(lLines.pos.x, lLines.pos.y, lLines.pos.x + #lLines.text - 1, lLines.pos.y)
         APLib.setColor(shapeColor)
         lLines.text = 'Lines: '..#mMemo.lines
+        lCursorPos.text = 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')'
         lLines:draw()
+        lCursorPos:draw()
 
         lPath.text = CurrFile
+    end
+)
+
+APLib.setLoopCallback(
+    APLib.event.loop.onEvent,
+    function (event)
+        if event[1] == 'mouse_scroll' then
+            if event[2] == 1 then
+                mMemo:setCursorPos(mMemo.cursor.pos.char, mMemo.cursor.pos.line + event[2])
+            elseif event[2] == -1 then
+                mMemo:setCursorPos(mMemo.cursor.pos.char, mMemo.cursor.pos.line + event[2])
+            end
+        end
     end
 )
 

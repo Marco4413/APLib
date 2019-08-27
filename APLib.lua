@@ -1,5 +1,5 @@
 
-ver = '1.3'
+ver = '1.3.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -1775,4 +1775,9 @@ function loop()
 
         os.cancelTimer(Timer) -- DELETE TIMER
     end
+end
+
+local tArgs = { ... }
+if tArgs[1] == 'ver' then
+    print('Lib version: '..ver)
 end
