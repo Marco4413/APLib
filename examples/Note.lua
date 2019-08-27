@@ -60,6 +60,7 @@ local function CompactNotes(_memo)
             i = i + 1
         end
     end
+    _memo:setCursorPos(1, 1)
     _memo:draw()
 end
 
@@ -275,12 +276,12 @@ mbGoto:setCallback(
         mbmInput.pos.y1 = self.pos.y1
         mbmInput.pos.y2 = self.pos.y1
 
-        mbmInput:setCursorPos(0, 0)
+        mbmInput:setCursorPos(1, 1)
         mbmInput:setCursorLimits(4, 1)
         mbmInput:edit()
 
         if tonumber(mbmInput.lines[1]) then
-            mMemo:setCursorPos(0, tonumber(mbmInput.lines[1]) - 1)
+            mMemo:setCursorPos(1, tonumber(mbmInput.lines[1]))
         end
         mbmInput.lines = {}
         self.state = false
@@ -371,7 +372,7 @@ mbmInput:setCallback(
 --//-----------------------------------------\\--
 
 -- MAIN PROGRAM
-local objs = {mMemo, mbFile, bCompact, mFileMenu, lLines, lPath}
+local objs = {mFileMenu, mbFile, bCompact, mMemo, lLines, lPath}
 
 APLib.setLoopCallback(
     APLib.event.loop.onInit,
@@ -406,8 +407,8 @@ if table.maxn(tArgs) > 0 then
         elseif tArgs[1] == 'multi' then
             if tArgs[2] then
                 if tostring(peripheral.getType(tArgs[2])) == 'monitor' then
-                    local monGroup = {tArgs[2]}
-                    APLib.setMonitorGroup(monGroup)
+                    table.remove(tArgs, 1)
+                    APLib.setMonitorGroup(tArgs)
                     APLib.setMonitorGroupEnabled(true)
                 end
             end
@@ -418,7 +419,9 @@ end
 APLib.setMonitor('term')
 
 APLib.drawOnLoopEvent()
-APLib.loop(objs)
+APLib.addLoopGroup('main', objs)
+APLib.setLoopGroup('main')
+APLib.loop()
 
 drawBackgroundToAllScreens(colors.black)
 

@@ -1,21 +1,21 @@
 
-ver = '1.2'
-local globalMonitor = term
-local globalMonitorName = 'term'
-local globalMonitorGroup = {
+ver = '1.3'
+globalMonitor = term
+globalMonitorName = 'term'
+globalMonitorGroup = {
     enabled = false,
     list = {}
 }
-local globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
+globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
 
 --DRAWING
-local globalColor = colors.white
-local globalTextColor = colors.white
-local globalBackgroundTextColor = colors.black
-local globalRectangleType = 1
+globalColor = colors.white
+globalTextColor = colors.white
+globalBackgroundTextColor = colors.black
+globalRectangleType = 1
 
 --LOOPS
-local globalLoop = {
+globalLoop = {
     enabled = false,
     autoClear = true,
     drawOnClock = true,
@@ -33,14 +33,15 @@ local globalLoop = {
         key = {},
         char = {}
     },
+    selectedGroup = 'none',
     group = {
-        general = {},
-        menu = {}
+        none = {},
+        LIBPrivate = {}
     }
 }
 
 --GLOBALCALLBACKS
-local globalCallbacks = {
+globalCallbacks = {
     onInfo = function() end,
     onBClear = function() end,
     onSetMonitor = function() end
@@ -990,8 +991,8 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
                 speed = 0.5
             },
             pos = {
-                char = 0,
-                line = 0
+                char = 1,
+                line = 1
             },
             limits = {
                 enabled = true,
@@ -1061,8 +1062,8 @@ function Memo:draw()
 
     -- MAKING THE CURSOR NOT GO OUT OF BOUNDS
     local _cursorScreenPos = {
-        x = self.cursor.pos.char,
-        y = self.cursor.pos.line
+        x = self.cursor.pos.char - 1,
+        y = self.cursor.pos.line - 1
     }
     if _cursorScreenPos.x > _width then
         _cursorScreenPos.x = _width
@@ -1077,20 +1078,20 @@ function Memo:draw()
 
     -- FOR EVERY Y IN THE SQUARE
     for i=0, math.abs(_memoY2 - _memoY1) do
-        if self.cursor.pos.line <= _height then -- IF THE CURSOR IS LESS THAN THE HEIGHT OF THE SQUARE
+        if self.cursor.pos.line - 1 <= _height then -- IF THE CURSOR IS LESS THAN THE HEIGHT OF THE SQUARE
             if self.lines[i + 1] then -- IF LINE EXISTS
-                if self.cursor.pos.char <= _width then -- IF THE CURSOR IS LESS THEN THE WIDTH OF THE SQUARE
+                if self.cursor.pos.char - 1 <= _width then -- IF THE CURSOR IS LESS THEN THE WIDTH OF THE SQUARE
                     text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1], 1, _width + 1))
                 else -- IF THE CURSOR IS MORE THEN THE WIDTH OF THE SQUARE
-                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1], self.cursor.pos.char - _width + 1, self.cursor.pos.char + 1))
+                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1], self.cursor.pos.char - _width, self.cursor.pos.char))
                 end
             end
         else -- IF THE CURSOR IS MORE THAN THE HEIGHT OF THE SQUARE
-            if self.lines[i + 1 + self.cursor.pos.line - _height] then -- IF LINE EXISTS
-                if self.cursor.pos.char <= _width then -- IF THE CURSOR IS LESS THEN THE WIDTH OF THE SQUARE
-                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1 + self.cursor.pos.line - _height], 1, _width + 1))
+            if self.lines[i + self.cursor.pos.line - _height] then -- IF LINE EXISTS
+                if self.cursor.pos.char - 1 <= _width then -- IF THE CURSOR IS LESS THEN THE WIDTH OF THE SQUARE
+                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + self.cursor.pos.line - _height], 1, _width + 1))
                 else -- IF THE CURSOR IS MORE THEN THE WIDTH OF THE SQUARE
-                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1 + self.cursor.pos.line - _height], self.cursor.pos.char - _width + 1, self.cursor.pos.char + 1))
+                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + self.cursor.pos.line - _height], self.cursor.pos.char - _width, self.cursor.pos.char))
                 end
             end
         end
@@ -1133,37 +1134,49 @@ function Memo:setCursorLimits(_char, _line)
     self.cursor.limits.line = _line
 end
 
-function Memo:setCursorPos(_char, _line)
+function Memo:setCursorPos(_char, _line, _fillEmptyLines)
     assert(type(_char) == 'number', 'Memo.setCursorPos: char must be a number, got '..type(_char))
     assert(type(_line) == 'number', 'Memo.setCursorPos: line must be a number, got '..type(_line))
 
-    if _char < 0 then -- IF CHAR POS IS LESS THAN 0 SET IT TO 0
-        _char = 0
+    if _char < 1 then -- IF CHAR POS IS LESS THAN 1 SET IT TO 1
+        _char = 1
     end
-    if _line < 0 then -- IF LINE POS IS LESS THAN 0 SET IT TO 0
-        _line = 0
+    if _line < 1 then -- IF LINE POS IS LESS THAN 1 SET IT TO 1
+        _line = 1
     end
     
     if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ON
         if self.cursor.limits.char then
-            if _char > self.cursor.limits.char then -- IF CHAR IS MORE THAN THE LIMIT SET IT TO IT
-                _char = self.cursor.limits.char - 1
+            if _char > self.cursor.limits.char + 1 then -- IF CHAR IS MORE THAN THE LIMIT SET IT TO IT
+                _char = self.cursor.limits.char
             end
         end
         if self.cursor.limits.line then
             if _line > self.cursor.limits.line then -- IF LINE IS MORE THAN THE LIMIT SET IT TO IT
-                _line = self.cursor.limits.line - 1
+                _line = self.cursor.limits.line
             end
         end
     end
 
-    if not self.lines[_line + 1] then -- IF SELECTED LINE DOESN'T EXISTS
-        for i=#self.lines + 1, _line + 1 do -- CREATE EMPTY LINES UNTILL LINE POS
-            table.insert(self.lines, '')
+    if not self.lines[_line] then -- IF SELECTED LINE DOESN'T EXISTS
+        if _fillEmptyLines then
+            for i=#self.lines + 1, _line do -- CREATE EMPTY LINES UNTILL LINE POS
+                table.insert(self.lines, '')
+            end
+        else
+            if #self.lines > 0 then
+                _line = #self.lines
+            else
+                _line = 1
+            end
         end
     end
-    if _char > #self.lines[_line + 1] then -- IF CHAR POS IS MORE THAN THE LINE LENGTH THEN SET CHAR TO IT
-        _char = #self.lines[_line + 1]
+    if self.lines[_line] then
+        if _char > #self.lines[_line] + 1 then -- IF CHAR POS IS MORE THAN THE LINE LENGTH THEN SET CHAR TO IT
+            _char = #self.lines[_line] + 1
+        end
+    else
+        _char = 1
     end
     self.cursor.pos.char = _char -- SET CHAR AND LINE POS TO MEMO CURSOR
     self.cursor.pos.line = _line
@@ -1175,7 +1188,7 @@ function Memo:edit(_event)
     if not self.hidden then -- IF MEMO ISN'T HIDDEN
 
         local function edit(event)
-            if not self.lines[1] then self:setCursorPos(0, 0); end -- IF FIRST LINE IS NULL THEN MAKE IT AN EMPTY STRING AND SELECT IT
+            if not self.lines[1] then self:setCursorPos(1, 1, true); end -- IF FIRST LINE IS NULL THEN MAKE IT AN EMPTY STRING AND SELECT IT
             self.callbacks.onEdit(self, event) -- CALL ON EDIT EVENT
 
             if self.cursor.limits.enabled then -- IF LIMITS ARE ACTIVE THEN
@@ -1208,38 +1221,38 @@ function Memo:edit(_event)
                     return false
                 end
             elseif event[1] == 'char' then
-                local cursorLine = self.lines[self.cursor.pos.line + 1] -- GET LINE WHERE THE CURSOR IS LOCATED
+                local cursorLine = self.lines[self.cursor.pos.line] -- GET LINE WHERE THE CURSOR IS LOCATED
 
                 if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
                     if self.cursor.limits.char then
-                        if self.cursor.pos.char < self.cursor.limits.char then -- IF CURSOR IS IN THE LIMITS THEN
-                            self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- ADD CHAR TO THE LINE
+                        if self.cursor.pos.char <= self.cursor.limits.char then -- IF CURSOR IS IN THE LIMITS THEN
+                            self.lines[self.cursor.pos.line] = cursorLine:sub( -- ADD CHAR TO THE LINE
                                 0,
-                                self.cursor.pos.char
+                                self.cursor.pos.char - 1
                             )..event[2]..cursorLine:sub(
-                                self.cursor.pos.char + 1,
+                                self.cursor.pos.char,
                                 #cursorLine
                             )
 
                             self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR BY ONE ON THE X AXIS
                         end
                     else
-                        self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- ADD CHAR TO THE LINE
+                        self.lines[self.cursor.pos.line] = cursorLine:sub( -- ADD CHAR TO THE LINE
                             0,
-                            self.cursor.pos.char
+                            self.cursor.pos.char - 1
                         )..event[2]..cursorLine:sub(
-                            self.cursor.pos.char + 1,
+                            self.cursor.pos.char,
                             #cursorLine
                         )
 
                         self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR BY ONE ON THE X AXIS
                     end
                 else -- IF CURSOR LIMITS ARE DISABLED THEN
-                    self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- ADD CHAR TO THE LINE
+                    self.lines[self.cursor.pos.line] = cursorLine:sub( -- ADD CHAR TO THE LINE
                         0,
-                        self.cursor.pos.char
+                        self.cursor.pos.char - 1
                     )..event[2]..cursorLine:sub(
-                        self.cursor.pos.char + 1,
+                        self.cursor.pos.char,
                         #cursorLine
                     )
 
@@ -1247,144 +1260,144 @@ function Memo:edit(_event)
                 end
 
             elseif event[1] == 'key' then
-                local cursorLine = self.lines[self.cursor.pos.line + 1] -- GET LINE WHERE THE CURSOR IS LOCATED
+                local cursorLine = self.lines[self.cursor.pos.line] -- GET LINE WHERE THE CURSOR IS LOCATED
 
                 if event[2] == 28 then -- ENTER KEY
                     if self.cursor.limits.enabled then -- IF LIMITS ARE ENABLED THEN
                         if self.cursor.limits.line then
                             if #self.lines + 1 <= self.cursor.limits.line then -- IF THE NEXT LINE IS ALLOWED THEN
-                                table.insert(self.lines, self.cursor.pos.line + 2, '') -- CREATE A NEW LINE
+                                table.insert(self.lines, self.cursor.pos.line + 1, '') -- CREATE A NEW LINE
 
-                                self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
+                                self.lines[self.cursor.pos.line] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
                                     0,
-                                    self.cursor.pos.char
+                                    self.cursor.pos.char - 1
                                 )
-                                self.lines[self.cursor.pos.line + 2] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
-                                    self.cursor.pos.char + 1,
+                                self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
+                                    self.cursor.pos.char,
                                     #cursorLine
-                                )..self.lines[self.cursor.pos.line + 2]
+                                )..self.lines[self.cursor.pos.line + 1]
                                 
                                 self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR POS LINE TO NEW LINE
-                                self.cursor.pos.char = 0 -- SET CURSOR POS CHAR TO 0
+                                self.cursor.pos.char = 1 -- SET CURSOR POS CHAR TO 1
                             end
                         else
-                            table.insert(self.lines, self.cursor.pos.line + 2, '') -- CREATE A NEW LINE
+                            table.insert(self.lines, self.cursor.pos.line + 1, '') -- CREATE A NEW LINE
 
-                            self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
+                            self.lines[self.cursor.pos.line] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
                                 0,
-                                self.cursor.pos.char
+                                self.cursor.pos.char - 1
                             )
-                            self.lines[self.cursor.pos.line + 2] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
-                                self.cursor.pos.char + 1,
+                            self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
+                                self.cursor.pos.char,
                                 #cursorLine
-                            )..self.lines[self.cursor.pos.line + 2]
+                            )..self.lines[self.cursor.pos.line + 1]
                             
                             self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR POS LINE TO NEW LINE
-                            self.cursor.pos.char = 0 -- SET CURSOR POS CHAR TO 0
+                            self.cursor.pos.char = 1 -- SET CURSOR POS CHAR TO 1
                         end
                     else -- IF LIMITS AREN'T ENABLED THEN
-                        table.insert(self.lines, self.cursor.pos.line + 2, '') -- CREATE A NEW LINE
+                        table.insert(self.lines, self.cursor.pos.line + 1, '') -- CREATE A NEW LINE
 
-                        self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
+                        self.lines[self.cursor.pos.line] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
                             0,
-                            self.cursor.pos.char
+                            self.cursor.pos.char - 1
                         )
-                        self.lines[self.cursor.pos.line + 2] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
-                            self.cursor.pos.char + 1,
+                        self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
+                            self.cursor.pos.char,
                             #cursorLine
-                        )..self.lines[self.cursor.pos.line + 2]
+                        )..self.lines[self.cursor.pos.line + 1]
                         
                         self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR POS LINE TO NEW LINE
-                        self.cursor.pos.char = 0 -- SET CURSOR POS CHAR TO 0
+                        self.cursor.pos.char = 1 -- SET CURSOR POS CHAR TO 1
                     end
                 elseif event[2] == 14 then -- BACKSPACE KEY
-                    if self.cursor.pos.char > 0 then -- IF THE CURSOR ISN'T AT THE BEGINNING IF THE LINE THEN
-                        self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- DELETE CHAR BEFORE CURSOR
+                    if self.cursor.pos.char > 1 then -- IF THE CURSOR ISN'T AT THE BEGINNING IF THE LINE THEN
+                        self.lines[self.cursor.pos.line] = cursorLine:sub( -- DELETE CHAR BEFORE CURSOR
+                            0,
+                            self.cursor.pos.char - 2
+                        )..cursorLine:sub(
+                            self.cursor.pos.char,
+                            #cursorLine
+                        )
+                        self.cursor.pos.char = self.cursor.pos.char - 1 -- SET CURSOR TO THE CHAR BEFORE THE ONE DELETED
+                    elseif self.cursor.pos.line > 1 then -- IF CURSOR POS IS AT THE BEGINNING OF THE LINE AND NOT ON THE FIRST ONE THEN
+                        local _endOfPreviousLine = #self.lines[self.cursor.pos.line - 1] -- GET THE LINE BEFORE THE ONE WHERE THE CURSOR IS
+                        if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
+                            if self.cursor.limits.char then
+                                if _endOfPreviousLine + #cursorLine <= self.cursor.limits.char then -- IF PREV LINE + CURR LINE IS LESS THAN CURSOR LIMITS THEN
+                                    self.lines[self.cursor.pos.line - 1] = self.lines[self.cursor.pos.line - 1]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
+                                        self.cursor.pos.char,
+                                        #cursorLine
+                                    )
+                                    table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
+                                    self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
+                                    self.cursor.pos.char = _endOfPreviousLine + 1 -- SELECT END OF THE PREV LINE
+                                end
+                            else
+                                self.lines[self.cursor.pos.line - 1] = self.lines[self.cursor.pos.line - 1]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
+                                    self.cursor.pos.char,
+                                    #cursorLine
+                                )
+                                table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
+                                self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
+                                self.cursor.pos.char = _endOfPreviousLine + 1 -- SELECT END OF THE PREV LINE
+                            end
+                        else-- IF CURSOR LIMITS AREN'T ENABLED THEN
+                            self.lines[self.cursor.pos.line - 1] = self.lines[self.cursor.pos.line - 1]..cursorLine:sub(-- SET PREV LINE TO PREVLINE + CURRLINE
+                                self.cursor.pos.char,
+                                #cursorLine
+                            )
+                            table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
+                            self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
+                            self.cursor.pos.char = _endOfPreviousLine + 1 -- SELECT END OF THE PREV LINE
+                        end
+                    end
+
+                elseif event[2] == 211 then -- CANC KEY
+                    if self.cursor.pos.char > #cursorLine then -- IF CURSOR IS AT THE END OF THE LINE THEN
+                        if self.lines[self.cursor.pos.line + 1] then -- IF THERE'S A NEXT LINE THEN
+                            if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
+                                if self.cursor.limits.char then
+                                    if #self.lines[self.cursor.pos.line + 1] + #cursorLine <= self.cursor.limits.char then -- IF CURR LINE + NEXT LINE ISN'T GREATER THAN CURSOR LIMITS THEN
+                                        self.lines[self.cursor.pos.line] = cursorLine..self.lines[self.cursor.pos.line + 1] -- SET CURR LINE TO CURRLINE + NEXTLINE
+                                        table.remove(self.lines, self.cursor.pos.line + 1) -- REMOVE NEXT LINE
+                                    end
+                                else
+                                    self.lines[self.cursor.pos.line] = cursorLine..self.lines[self.cursor.pos.line + 1] -- SET CURR LINE TO CURRLINE + NEXTLINE
+                                    table.remove(self.lines, self.cursor.pos.line + 1) -- REMOVE NEXT LINE
+                                end
+                            else -- IF CURSOR LIMITS AREN'T ENABLED THEN
+                                self.lines[self.cursor.pos.line] = cursorLine..self.lines[self.cursor.pos.line + 1] -- SET CURR LINE TO CURRLINE + NEXTLINE
+                                table.remove(self.lines, self.cursor.pos.line + 1) -- REMOVE NEXT LINE
+                            end
+                        end
+
+                    else -- IF CURSOR ISN'T AT THE END OF THE LINE THEN
+                        self.lines[self.cursor.pos.line] = cursorLine:sub( -- REMOVE CHAR ON THE CURSOR
                             0,
                             self.cursor.pos.char - 1
                         )..cursorLine:sub(
                             self.cursor.pos.char + 1,
                             #cursorLine
                         )
-                        self.cursor.pos.char = self.cursor.pos.char - 1 -- SET CURSOR TO THE CHAR BEFORE THE ONE DELETED
-                    elseif self.cursor.pos.line > 0 then -- IF CURSOR POS IS AT THE BEGINNING OF THE LINE AND NOT ON THE FIRST ONE THEN
-                        local _endOfPreviousLine = #self.lines[self.cursor.pos.line] -- GET THE LINE BEFORE THE ONE WHERE THE CURSOR IS
-                        if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                            if self.cursor.limits.char then
-                                if _endOfPreviousLine + #cursorLine <= self.cursor.limits.char then -- IF PREV LINE + CURR LINE IS LESS THAN CURSOR LIMITS THEN
-                                    self.lines[self.cursor.pos.line] = self.lines[self.cursor.pos.line]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
-                                        self.cursor.pos.char + 1,
-                                        #cursorLine
-                                    )
-                                    table.remove(self.lines, self.cursor.pos.line + 1) -- REMOVE CURRLINE
-                                    self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
-                                    self.cursor.pos.char = _endOfPreviousLine -- SELECT END OF THE PREV LINE
-                                end
-                            else
-                                self.lines[self.cursor.pos.line] = self.lines[self.cursor.pos.line]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
-                                    self.cursor.pos.char + 1,
-                                    #cursorLine
-                                )
-                                table.remove(self.lines, self.cursor.pos.line + 1) -- REMOVE CURRLINE
-                                self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
-                                self.cursor.pos.char = _endOfPreviousLine -- SELECT END OF THE PREV LINE
-                            end
-                        else-- IF CURSOR LIMITS AREN'T ENABLED THEN
-                            self.lines[self.cursor.pos.line] = self.lines[self.cursor.pos.line]..cursorLine:sub(-- SET PREV LINE TO PREVLINE + CURRLINE
-                                self.cursor.pos.char + 1,
-                                #cursorLine
-                            )
-                            table.remove(self.lines, self.cursor.pos.line + 1) -- REMOVE CURRLINE
-                            self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
-                            self.cursor.pos.char = _endOfPreviousLine -- SELECT END OF THE PREV LINE
-                        end
-                    end
-
-                elseif event[2] == 211 then -- CANC KEY
-                    if self.cursor.pos.char > #cursorLine - 1 then -- IF CURSOR IS AT THE END OF THE LINE THEN
-                        if self.lines[self.cursor.pos.line + 2] then -- IF THERE'S A NEXT LINE THEN
-                            if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                                if self.cursor.limits.char then
-                                    if #self.lines[self.cursor.pos.line + 2] + #cursorLine <= self.cursor.limits.char then -- IF CURR LINE + NEXT LINE ISN'T GREATER THAN CURSOR LIMITS THEN
-                                        self.lines[self.cursor.pos.line + 1] = cursorLine..self.lines[self.cursor.pos.line + 2] -- SET CURR LINE TO CURRLINE + NEXTLINE
-                                        table.remove(self.lines, self.cursor.pos.line + 2) -- REMOVE NEXT LINE
-                                    end
-                                else
-                                    self.lines[self.cursor.pos.line + 1] = cursorLine..self.lines[self.cursor.pos.line + 2] -- SET CURR LINE TO CURRLINE + NEXTLINE
-                                    table.remove(self.lines, self.cursor.pos.line + 2) -- REMOVE NEXT LINE
-                                end
-                            else -- IF CURSOR LIMITS AREN'T ENABLED THEN
-                                self.lines[self.cursor.pos.line + 1] = cursorLine..self.lines[self.cursor.pos.line + 2] -- SET CURR LINE TO CURRLINE + NEXTLINE
-                                table.remove(self.lines, self.cursor.pos.line + 2) -- REMOVE NEXT LINE
-                            end
-                        end
-
-                    else -- IF CURSOR ISN'T AT THE END OF THE LINE THEN
-                        self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- REMOVE CHAR ON THE CURSOR
-                            0,
-                            self.cursor.pos.char
-                        )..cursorLine:sub(
-                            self.cursor.pos.char + 2,
-                            #cursorLine
-                        )
                     end
 
                 elseif event[2] == 203 then -- ARROW KEY LEFT
-                    if self.cursor.pos.char > 0 then -- IF CURSOR POS IS GREATER THAN 0 THEN
+                    if self.cursor.pos.char > 1 then -- IF CURSOR POS IS GREATER THAN 0 THEN
                         self.cursor.pos.char = self.cursor.pos.char - 1 -- SET CURSOR POS CHAR TO PREV CHAR
                     else
-                        if self.cursor.pos.line > 0 then -- IF IT ISN'T ON THE FIRST LINE THEN
+                        if self.cursor.pos.line > 1 then -- IF IT ISN'T ON THE FIRST LINE THEN
                             self.cursor.pos.line = self.cursor.pos.line - 1 -- SET IT TO THE PREVIOUS ONE
-                            self.cursor.pos.char = #self.lines[self.cursor.pos.line + 1]
+                            self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
                         end
                     end
 
 
                 elseif event[2] == 205 then -- ARROW KEY RIGHT
-                    if self.cursor.pos.char < #cursorLine then -- IF CURSOR ISN'T AT THE END OF TEXT IN THE LINE THEN
+                    if self.cursor.pos.char <= #cursorLine then -- IF CURSOR ISN'T AT THE END OF TEXT IN THE LINE THEN
                         if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
                             if self.cursor.limits.char then
-                                if self.cursor.pos.char < self.cursor.limits.char then -- IF THE CURSOR DOESN'T GO OUT OF THE LIMITS IF MOVED TO THE RIGHT THEN DO IT
+                                if self.cursor.pos.char <= self.cursor.limits.char then -- IF THE CURSOR DOESN'T GO OUT OF THE LIMITS IF MOVED TO THE RIGHT THEN DO IT
                                     self.cursor.pos.char = self.cursor.pos.char + 1
                                 end
                             else
@@ -1394,54 +1407,54 @@ function Memo:edit(_event)
                             self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR TO THE RIGHT
                         end
                     else
-                        if self.lines[self.cursor.pos.line + 2] then -- IF A NEXT LINE EXISTS THEN
+                        if self.lines[self.cursor.pos.line + 1] then -- IF A NEXT LINE EXISTS THEN
                             if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
                                 if self.cursor.limits.line then
-                                    if self.cursor.pos.line + 1 < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
+                                    if self.cursor.pos.line < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
                                         self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
-                                        self.cursor.pos.char = 0
+                                        self.cursor.pos.char = 1
                                     end
                                 else
                                     self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
-                                    self.cursor.pos.char = 0
+                                    self.cursor.pos.char = 1
                                 end
                             else -- IF CURSOR LIMITS AREN'T ENABLED THEN
                                 self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO NEXT LINE
-                                self.cursor.pos.char = 0
+                                self.cursor.pos.char = 1
                             end
                         end
                     end
 
 
                 elseif event[2] == 200 then -- ARROW KEY UP
-                    if self.cursor.pos.line > 0 then -- IF IT ISN'T ON THE FIRST LINE THEN
+                    if self.cursor.pos.line > 1 then -- IF IT ISN'T ON THE FIRST LINE THEN
                         self.cursor.pos.line = self.cursor.pos.line - 1 -- SET IT TO THE PREVIOUS ONE
-                        if self.cursor.pos.char > #self.lines[self.cursor.pos.line + 1] then -- IF CURSOR POS CHAR IS GREATER THEN THE END OF THE TEXT ON PREV LINE THEN SET IT TO THE END OF IT
-                            self.cursor.pos.char = #self.lines[self.cursor.pos.line + 1]
+                        if self.cursor.pos.char - 1 > #self.lines[self.cursor.pos.line] then -- IF CURSOR POS CHAR IS GREATER THAN THE END OF THE TEXT ON PREV LINE THEN SET IT TO THE END OF IT
+                            self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
                         end
                     end
 
 
                 elseif event[2] == 208 then -- ARROW KEY DOWN
-                    if self.lines[self.cursor.pos.line + 2] then -- IF A NEXT LINE EXISTS THEN
+                    if self.lines[self.cursor.pos.line + 1] then -- IF A NEXT LINE EXISTS THEN
                         if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
                             if self.cursor.limits.line then
-                                if self.cursor.pos.line + 1 < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
+                                if self.cursor.pos.line < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
                                     self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
-                                    if self.cursor.pos.char > #self.lines[self.cursor.pos.line + 1] then -- IF CURSOR POS CHAR IS GREATER THEN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
-                                        self.cursor.pos.char = #self.lines[self.cursor.pos.line + 1]
+                                    if self.cursor.pos.char - 1 > #self.lines[self.cursor.pos.line] then -- IF CURSOR POS CHAR IS GREATER THAN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
+                                        self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
                                     end
                                 end
                             else
                                 self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
-                                if self.cursor.pos.char > #self.lines[self.cursor.pos.line + 1] then -- IF CURSOR POS CHAR IS GREATER THEN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
-                                    self.cursor.pos.char = #self.lines[self.cursor.pos.line + 1]
+                                if self.cursor.pos.char - 1 > #self.lines[self.cursor.pos.line] then -- IF CURSOR POS CHAR IS GREATER THAN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
+                                    self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
                                 end
                             end
                         else -- IF CURSOR LIMITS AREN'T ENABLED THEN
                             self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO NEXT LINE
-                            if self.cursor.pos.char > #self.lines[self.cursor.pos.line + 1] then -- IF CURSOR POS CHAR IS GREATER THEN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
-                                self.cursor.pos.char = #self.lines[self.cursor.pos.line + 1]
+                            if self.cursor.pos.char - 1 > #self.lines[self.cursor.pos.line] then -- IF CURSOR POS CHAR IS GREATER THAN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
+                                self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
                             end
                         end
                     end
@@ -1607,6 +1620,19 @@ function loopAutoClear(_bool)
     globalLoop.autoClear = _bool
 end
 
+function addLoopGroup(_groupName, _group)
+    _groupName = tostring(_groupName)
+    assert(_groupName ~= 'LIBPrivate' or _groupName ~= 'none', "addLoopGroup: can't overwrite Lib's Private group")
+    assert(type(_group) == 'table', 'addLoopGroup: group must be a table, got '..type(_group))
+    globalLoop.group[_groupName] = _group
+end
+
+function setLoopGroup(_groupName)
+    _groupName = tostring(_groupName)
+    assert(globalLoop.group[_groupName], 'setLoopGroup: groupName must be a valid group.')
+    globalLoop.selectedGroup = _groupName
+end
+
 function stopLoop()
     globalLoop.enabled = false --STOP LOOP
 
@@ -1620,27 +1646,21 @@ function stopLoop()
         char = {}
     }
 
-    globalLoop.group.menu = {}
-    globalLoop.group.general = {} --CLEAR LOOP GROUP
+    globalLoop.selectedGroup = 'none'
+    globalLoop.group = {
+        none = {},
+        LIBPrivate = globalLoop.group.LIBPrivate
+    } --CLEAR LOOP GROUP
 end
 
-function loop(_group)
-    assert(type(_group) == 'table', 'Loop: group must be a table, got '..type(_group))
+function loop()
     globalLoop.enabled = true -- ACTIVATE LOOP
-    
-    for key, obj in pairs(_group) do -- SET GLOBAL LOOP GROUP
-        if getmetatable(obj) == Menu then
-            table.insert(globalLoop.group.menu, obj)
-        else
-            table.insert(globalLoop.group.general, obj)
-        end
-    end
 
     if globalLoop.autoClear then
         bClear()
     end
 
-    for _, obj in pairs(globalLoop.group.general) do
+    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do
         if obj.tick then
             table.insert(globalLoop.events.tick, obj)
         end
@@ -1652,36 +1672,33 @@ function loop(_group)
         end
     end
 
-
-    globalLoop.callbacks.onInit()
-    if globalMonitorGroup.enabled then
-        globalLoop.callbacks.onMonitorChange(monitorName)
-        for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
-            obj:draw()
-        end
-        for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
-            obj:draw()
-        end
-        local oldMonitor = globalMonitorName
-        for _, monitorName in pairs(globalMonitorGroup.list) do
-            setMonitor(monitorName)
+    local function drawLoopOBJs()
+        if globalMonitorGroup.enabled then
             globalLoop.callbacks.onMonitorChange(monitorName)
-            for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
+            for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
+                local obj = globalLoop.group[globalLoop.selectedGroup][i]
                 obj:draw()
             end
-            for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
+            local oldMonitor = globalMonitorName
+            for _, monitorName in pairs(globalMonitorGroup.list) do
+                setMonitor(monitorName)
+                globalLoop.callbacks.onMonitorChange(monitorName)
+                for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
+                    local obj = globalLoop.group[globalLoop.selectedGroup][i]
+                    obj:draw()
+                end
+            end
+            setMonitor(oldMonitor)
+        else
+            for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
+                local obj = globalLoop.group[globalLoop.selectedGroup][i]
                 obj:draw()
             end
-        end
-        setMonitor(oldMonitor)
-    else
-        for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
-            obj:draw()
-        end
-        for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
-            obj:draw()
         end
     end
+
+    globalLoop.callbacks.onInit()
+    drawLoopOBJs()
 
     local Clock = os.clock()
 
@@ -1693,41 +1710,33 @@ function loop(_group)
 
         -- EVENT
         if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
-            local wasMenuPressed = false
-            for _, obj in pairs(globalLoop.group.menu) do -- UPDATE MENUs
-                if obj:update(event[3], event[4], event) then
-                    if not wasMenuPressed then
-                        wasMenuPressed = true
+            if not wasMenuPressed then
+                for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
+                    if obj:update(event[3], event[4], event) then
+                        break
                     end
                 end
             end
-            if not wasMenuPressed then
-                for _, obj in pairs(globalLoop.group.general) do -- UPDATE OBJs
-                    obj:update(event[3], event[4], event)
-                end
-            end
+
         elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, 'term'))) then
-            local wasMenuPressed = false
-            for _, obj in pairs(globalLoop.group.menu) do -- UPDATE MENUs
-                if obj:update(event[3], event[4], event) then
-                    if not wasMenuPressed then
-                        wasMenuPressed = true
+            if not wasMenuPressed then
+                for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
+                    if obj:update(event[3], event[4], event) then
+                        break
                     end
                 end
             end
-            if not wasMenuPressed then
-                for _, obj in pairs(globalLoop.group.general) do -- UPDATE OBJs
-                    obj:update(event[3], event[4], event)
-                end
-            end
+
         elseif event[1] == 'key' then
             for _, obj in pairs(globalLoop.events.key) do -- CALL OBJs KEY EVENTS
                 obj:key(event)
             end
+
         elseif event[1] == 'char' then
             for _, obj in pairs(globalLoop.events.char) do -- CALL OBJs CHAR EVENTS
                 obj:char(event)
             end
+
         elseif event[1] == 'timer' then
             globalLoop.callbacks.onTimer(event)
         end
@@ -1742,34 +1751,7 @@ function loop(_group)
                     bClear()
                 end
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
-                if globalMonitorGroup.enabled then
-                    globalLoop.callbacks.onMonitorChange(monitorName, event)
-                    for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
-                        obj:draw()
-                    end
-                    for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
-                        obj:draw()
-                    end
-                    local oldMonitor = globalMonitorName
-                    for _, monitorName in pairs(globalMonitorGroup.list) do
-                        setMonitor(monitorName)
-                        globalLoop.callbacks.onMonitorChange(monitorName, event)
-                        for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
-                            obj:draw()
-                        end
-                        for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
-                            obj:draw()
-                        end
-                    end
-                    setMonitor(oldMonitor)
-                else
-                    for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
-                        obj:draw()
-                    end
-                    for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
-                        obj:draw()
-                    end
-                end
+                drawLoopOBJs()
             else
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
             end
@@ -1786,34 +1768,7 @@ function loop(_group)
                 bClear()
             end
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
-            if globalMonitorGroup.enabled then
-                globalLoop.callbacks.onMonitorChange(monitorName, event)
-                for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
-                    obj:draw()
-                end
-                for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
-                    obj:draw()
-                end
-                local oldMonitor = globalMonitorName
-                for _, monitorName in pairs(globalMonitorGroup.list) do
-                    setMonitor(monitorName)
-                    globalLoop.callbacks.onMonitorChange(monitorName, event)
-                    for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
-                        obj:draw()
-                    end
-                    for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
-                        obj:draw()
-                    end
-                end
-                setMonitor(oldMonitor)
-            else
-                for _, obj in pairs(globalLoop.group.general) do -- DRAW ALL OBJs
-                    obj:draw()
-                end
-                for _, obj in pairs(globalLoop.group.menu) do -- DRAW ALL MENUs
-                    obj:draw()
-                end
-            end
+            drawLoopOBJs()
         else
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
         end
