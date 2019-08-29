@@ -1,5 +1,5 @@
 
-ver = '1.4.2'
+ver = '1.4.3'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -70,7 +70,8 @@ event = {
     },
     menu = {
         onDraw = 1,
-        onPress = 2
+        onPress = 2,
+        onButtonPress = 3
     },
     percentagebar = {
         onDraw = 1,
@@ -666,7 +667,8 @@ function Menu.new(_x1, _y1, _x2, _y2, _color)
         },
         callbacks = {
             onDraw = function() end,
-            onPress = function() end
+            onPress = function() end,
+            onButtonPress = function() end
         }
     }
     setmetatable(_newMenu, Menu) --SET MENU METATABLE
@@ -701,6 +703,8 @@ function Menu:setCallback(_event, _callback)
         self.callbacks.onDraw = _callback
     elseif _event == 2 then
         self.callbacks.onPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onButtonPress = _callback
     end
 end
 
@@ -709,18 +713,18 @@ function Menu:set(_table, _fillMenu)
         assert(getmetatable(obj) == Button, 'Menu.set: you can only attach buttons to menus.')
     end
 
-    local memo_width = math.abs(self.pos.x2 - self.pos.x1) + 1 -- GET MEMO WIDTH & HEIGHT
-    local memo_height = math.abs(self.pos.y2 - self.pos.y1) + 1
+    local menu_width = math.abs(self.pos.x2 - self.pos.x1) + 1 -- GET MENU WIDTH & HEIGHT
+    local menu_height = math.abs(self.pos.y2 - self.pos.y1) + 1
 
-    for i=memo_height + 1, #_table do -- REMOVE EXTRA OBJs
-        table.remove(_table, memo_height + 1)
+    for i=menu_height + 1, #_table do -- REMOVE EXTRA OBJs
+        table.remove(_table, menu_height + 1)
     end
 
-    local objHeight = math.floor(memo_height / #_table) -- GET OBJs HEIGHT NEEDED TO FILL SCREEN
+    local objHeight = math.floor(menu_height / #_table) -- GET OBJs HEIGHT NEEDED TO FILL SCREEN
 
     local _menuX1, _menuX2, _menuY1, _menuY2
 
-    if self.pos.x1 > self.pos.x2 then -- SORT MEMO POS
+    if self.pos.x1 > self.pos.x2 then -- SORT MENU POS
         _menuX1 = self.pos.x2
         _menuX2 = self.pos.x1
     else
@@ -748,7 +752,7 @@ function Menu:set(_table, _fillMenu)
             obj.pos.y2 = _menuY1 + (key - 1)
         end
 
-        obj.text = string.sub(obj.text, 0, memo_width)
+        obj.text = string.sub(obj.text, 0, menu_width)
         table.insert(self.objs, obj)
     end
 end
@@ -762,7 +766,10 @@ function Menu:update(_x, _y, _event)
             -- IF THE MENU WAS PRESSED CALL CALLBACK
             self.callbacks.onPress(self, _event)
             for key, obj in pairs(self.objs) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
-                obj:update(_x, _y, _event)
+                if obj:update(_x, _y, _event) then
+                    self.callbacks.onButtonPress(self, obj, _event)
+                    break
+                end
             end
             return true
         else
