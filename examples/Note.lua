@@ -35,10 +35,18 @@ if table.maxn(tArgs) > 0 then
             if tArgs[2] then
                 if tArgs[2]:sub(1, 1) ~= '/' then tArgs[2] = '/'..tArgs[2]; end
                 if tArgs[2]:sub(#tArgs[2], #tArgs[2]) ~= '/' then tArgs[2] = tArgs[2]..'/'; end
-
-                settings.set('NotesPath', tArgs[2])
-                print("Path succesfully changed to '"..tostring(settings.get('NotesPath')).."'")
-                sleep(2)
+                
+                if shell then -- CHECKING IF SHELL API IS AVAILABLE
+                    local _settingsPath = '/.settings'
+                    local _LibPath = shell.getRunningProgram()
+                    settings.set('NotesPath', _LibPath)
+                    settings.save(_settingsPath)
+                    print("Path succesfully changed to '"..tostring(settings.get('NotesPath')).."'")
+                    sleep(2)
+                    os.reboot() -- REBOOTING AFTER SETUP
+                else
+                    error("Path change failed, shell API not available!")
+                end
             end
         end
     end
