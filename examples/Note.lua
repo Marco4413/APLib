@@ -14,45 +14,9 @@ else
     )..";\n probably you haven't completed Lib setup\n via 'LIBFILE setup' or the setup failed")
 end
 
-local tArgs = { ... }
-
-if table.maxn(tArgs) > 0 then
-    if tArgs[1] then
-        tArgs[1] = string.lower(tArgs[1])
-        if tArgs[1] == 'open' then
-            if tArgs[2] then
-                OpenNotes(mMemo, tostring(tArgs[2]))
-            end
-        elseif tArgs[1] == 'multi' then
-            if tArgs[2] then
-                if tostring(peripheral.getType(tArgs[2])) == 'monitor' then
-                    table.remove(tArgs, 1)
-                    APLib.setMonitorGroup(tArgs)
-                    APLib.setMonitorGroupEnabled(true)
-                end
-            end
-        elseif tArgs[1] == 'path' then
-            if tArgs[2] then
-                if tArgs[2]:sub(1, 1) ~= '/' then tArgs[2] = '/'..tArgs[2]; end
-                if tArgs[2]:sub(#tArgs[2], #tArgs[2]) ~= '/' then tArgs[2] = tArgs[2]..'/'; end
-                
-                if shell then -- CHECKING IF SHELL API IS AVAILABLE
-                    local _settingsPath = '/.settings'
-                    local _LibPath = shell.getRunningProgram()
-                    settings.set('NotesPath', _LibPath)
-                    settings.save(_settingsPath)
-                    print("Path succesfully changed to '"..tostring(settings.get('NotesPath')).."'")
-                    sleep(2)
-                    os.reboot() -- REBOOTING AFTER SETUP
-                else
-                    error("Path change failed, shell API not available!")
-                end
-            end
-        end
-    end
-end
-
 --//-----------------------------------------\\--
+
+local tArgs = { ... }
 
 local shapeColor = colors.lightGray
 local textColor = colors.white
@@ -143,7 +107,7 @@ local function OpenNotes(_memo, FileName)
             _memo.lines = {}
             _memo:draw()
         end
-        if string.sub(FileName, 1, #defPath) ~= defPath then
+        if not string.sub(FileName, 1, #defPath) == defPath then
             FileName = defPath..FileName
             if (string.sub(FileName, #defPath + 1, #defPath + 1) == "/") then
                 FileName = string.sub(FileName, 1, #defPath)..string.sub(FileName, #defPath + 2)
@@ -299,7 +263,7 @@ mbSave:setCallback(
             sleep(0.5)
             self.state = false
             self:draw()
-            SaveNotes(mMemo, nil, true)
+            SaveNotes(mMemo, CurrFile)
         end
     end
 )
@@ -444,6 +408,46 @@ mbmInput:setCallback(
 --//-----------------------------------------\\--
 
 -- MAIN PROGRAM
+
+if table.maxn(tArgs) > 0 then
+    if tArgs[1] then
+        tArgs[1] = string.lower(tArgs[1])
+        if tArgs[1] == 'open' then
+            if tArgs[2] then
+                if not tArgs[2]:sub(1, 1) == '/' then
+                    tArgs[2] = '/'..tArgs[2]
+                end
+                OpenNotes(mMemo, tostring(tArgs[2]))
+            end
+        elseif tArgs[1] == 'multi' then
+            if tArgs[2] then
+                if tostring(peripheral.getType(tArgs[2])) == 'monitor' then
+                    table.remove(tArgs, 1)
+                    APLib.setMonitorGroup(tArgs)
+                    APLib.setMonitorGroupEnabled(true)
+                end
+            end
+        elseif tArgs[1] == 'path' then
+            if tArgs[2] then
+                if tArgs[2]:sub(1, 1) ~= '/' then tArgs[2] = '/'..tArgs[2]; end
+                if tArgs[2]:sub(#tArgs[2], #tArgs[2]) ~= '/' then tArgs[2] = tArgs[2]..'/'; end
+                
+                if shell then -- CHECKING IF SHELL API IS AVAILABLE
+                    local _settingsPath = '/.settings'
+                    local _NotesPath = tArgs[2]
+                    settings.set('NotesPath', _NotesPath)
+                    settings.save(_settingsPath)
+                    print("Path succesfully changed to '"..tostring(settings.get('NotesPath')).."'")
+                    sleep(2)
+                    os.reboot() -- REBOOTING AFTER SETUP
+                else
+                    error("Path change failed, shell API not available!")
+                end
+            end
+        end
+    end
+end
+
 local objs = {mFileMenu, mbFile, bCompact, mMemo, lLines, lCursorPos, lPath}
 
 APLib.setLoopCallback(

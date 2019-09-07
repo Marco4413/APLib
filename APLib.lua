@@ -1,5 +1,5 @@
 
-ver = '1.4.3'
+ver = '1.5.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -989,6 +989,11 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
             x2 = _x2,
             y2 = _y2
         },
+        editSettings = {
+            editable = true,
+            charEvent = true,
+            keyEvent = true
+        },
         cursor = {
             color = _cursorColor,
             visible = false,
@@ -1192,6 +1197,10 @@ end
 
 function Memo:edit(_event)
 
+    if not self.editSettings.editable then
+        return
+    end
+
     if not self.hidden then -- IF MEMO ISN'T HIDDEN
 
         local function edit(event)
@@ -1227,7 +1236,7 @@ function Memo:edit(_event)
                 else
                     return false
                 end
-            elseif event[1] == 'char' then
+            elseif event[1] == 'char' and self.editSettings.charEvent then
                 local cursorLine = self.lines[self.cursor.pos.line] -- GET LINE WHERE THE CURSOR IS LOCATED
 
                 if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
@@ -1266,7 +1275,7 @@ function Memo:edit(_event)
                     self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR BY ONE ON THE X AXIS
                 end
 
-            elseif event[1] == 'key' then
+            elseif event[1] == 'key' and self.editSettings.keyEvent then
                 local cursorLine = self.lines[self.cursor.pos.line] -- GET LINE WHERE THE CURSOR IS LOCATED
 
                 if event[2] == 28 then -- ENTER KEY
@@ -1570,6 +1579,51 @@ function Memo:char(_event)
     end
 end
 
+function Memo:write(_string)
+    _string = tostring(_string)
+
+    if not self.lines[1] then self:setCursorPos(1, 1, true); end -- IF FIRST LINE IS NULL THEN MAKE IT AN EMPTY STRING AND SELECT IT
+    local cursorLine = self.lines[self.cursor.pos.line]
+
+    cursorLine = cursorLine:sub( -- ADD STRING TO THE LINE
+        0,
+        self.cursor.pos.char - 1
+    ).._string..cursorLine:sub(
+        self.cursor.pos.char,
+        #cursorLine
+    )
+
+    self.lines[self.cursor.pos.line] = cursorLine
+    self:setCursorPos(self.cursor.pos.char + #_string, self.cursor.pos.line)
+    
+    if self.cursor.limits.enabled then -- IF LIMITS ARE ACTIVE THEN
+        if self.cursor.limits.char then -- IF A LINE CONTAINS MORE CHARS THAN ALLOWED THEN DELETE THE EXTRA ONES
+            if #cursorLine > self.cursor.limits.char then
+                cursorLine = cursorLine:sub(1, self.cursor.limits.char)
+            end
+        end
+    end
+
+    self.lines[self.cursor.pos.line] = cursorLine
+end
+
+function Memo:print(_string)
+    _string = tostring(_string)
+
+    self:write(_string)
+    if self.lines[self.cursor.pos.line + 1] then -- IF A LINE AFTER THE CURRENT ONE EXISTS THEN GO TO IT AND TO THE END OF IT
+        self:setCursorPos(#self.lines[self.cursor.pos.line + 1], self.cursor.pos.line + 1)
+    else -- IF A LINE AFTER THE CURRENT ONE DOESN'T EXISTS THEN CREATE AND GO TO IT
+        self:setCursorPos(1, self.cursor.pos.line + 1, true)
+    end
+end
+
+function Memo:clear()
+    self.cursor.pos.char = 1
+    self.cursor.pos.line = 1
+    self.lines = {}
+end
+
 function Memo:optimize(_bool)
     assert(type(_bool) == 'boolean', 'Memo.optimized: bool must be a boolean, got '..type(_bool))
     self.optimized = _bool
@@ -1578,6 +1632,11 @@ end
 function Memo:limits(_bool)
     assert(type(_bool) == 'boolean', 'Memo.limits: bool must be a boolean, got '..type(_bool))
     self.cursor.limits.enabled = _bool
+end
+
+function Memo:editable(_bool)
+    assert(type(_bool) == 'boolean', 'Memo.editable: bool must be a boolean, got '..type(_bool))
+    self.editSettings.editable = _bool
 end
 
 function Memo:hide(_bool)
@@ -1629,7 +1688,7 @@ end
 
 function addLoopGroup(_groupName, _group)
     _groupName = tostring(_groupName)
-    assert(_groupName ~= 'LIBPrivate' or _groupName ~= 'none', "addLoopGroup: can't overwrite Lib's Private group")
+    assert(_groupName ~= 'LIBPrivate' or _groupName ~= 'none', "addLoopGroup: can't overwrite Lib's Private groups")
     assert(type(_group) == 'table', 'addLoopGroup: group must be a table, got '..type(_group))
     globalLoop.group[_groupName] = _group
 end
