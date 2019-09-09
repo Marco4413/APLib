@@ -1,5 +1,5 @@
 
-ver = '1.5.0'
+ver = '1.5.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -33,6 +33,7 @@ globalLoop = {
         key = {},
         char = {}
     },
+    wasGroupChanged = false,
     selectedGroup = 'none',
     group = {
         none = {},
@@ -1697,6 +1698,7 @@ function setLoopGroup(_groupName)
     _groupName = tostring(_groupName)
     assert(globalLoop.group[_groupName], 'setLoopGroup: groupName must be a valid group.')
     globalLoop.selectedGroup = _groupName
+    globalLoop.wasGroupChanged = true
 end
 
 function resetLoopSettings()
@@ -1722,21 +1724,18 @@ function stopLoop()
 end
 
 function loop()
-    globalLoop.enabled = true -- ACTIVATE LOOP
 
-    if globalLoop.autoClear then
-        bClear()
-    end
-
-    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do
-        if obj.tick then
-            table.insert(globalLoop.events.tick, obj)
-        end
-        if obj.key then
-            table.insert(globalLoop.events.key, obj)
-        end
-        if obj.char then
-            table.insert(globalLoop.events.char, obj)
+    local function updateGlobalLoopEvents()
+        for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do
+            if obj.tick then
+                table.insert(globalLoop.events.tick, obj)
+            end
+            if obj.key then
+                table.insert(globalLoop.events.key, obj)
+            end
+            if obj.char then
+                table.insert(globalLoop.events.char, obj)
+            end
         end
     end
 
@@ -1765,12 +1764,25 @@ function loop()
         end
     end
 
+    globalLoop.enabled = true -- ACTIVATE LOOP
+
+    if globalLoop.autoClear then
+        bClear()
+    end
+
+    updateGlobalLoopEvents()
+
     globalLoop.callbacks.onInit()
     drawLoopOBJs()
 
     local Clock = os.clock()
 
     while globalLoop.enabled do
+
+        if globalLoop.wasGroupChanged then
+            updateGlobalLoopEvents()
+            globalLoop.wasGroupChanged = false
+        end
 
         local Timer = os.startTimer(globalLoop.timerSpeed) -- START A TIMER
 
