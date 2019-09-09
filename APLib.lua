@@ -1,5 +1,5 @@
 
-ver = '1.5.1'
+ver = '1.6.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -1739,31 +1739,6 @@ function loop()
         end
     end
 
-    local function drawLoopOBJs()
-        if globalMonitorGroup.enabled then
-            globalLoop.callbacks.onMonitorChange(monitorName)
-            for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
-                local obj = globalLoop.group[globalLoop.selectedGroup][i]
-                obj:draw()
-            end
-            local oldMonitor = globalMonitorName
-            for _, monitorName in pairs(globalMonitorGroup.list) do
-                setMonitor(monitorName)
-                globalLoop.callbacks.onMonitorChange(monitorName)
-                for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
-                    local obj = globalLoop.group[globalLoop.selectedGroup][i]
-                    obj:draw()
-                end
-            end
-            setMonitor(oldMonitor)
-        else
-            for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
-                local obj = globalLoop.group[globalLoop.selectedGroup][i]
-                obj:draw()
-            end
-        end
-    end
-
     globalLoop.enabled = true -- ACTIVATE LOOP
 
     if globalLoop.autoClear then
@@ -1790,22 +1765,12 @@ function loop()
 
         -- EVENT
         if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
-            if not wasMenuPressed then
-                for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
-                    if obj:update(event[3], event[4], event) then
-                        break
-                    end
-                end
-            end
+            
+            updateLoopOBJs(event[3], event[4], event)
 
         elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, 'term'))) then
-            if not wasMenuPressed then
-                for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
-                    if obj:update(event[3], event[4], event) then
-                        break
-                    end
-                end
-            end
+            
+            updateLoopOBJs(event[3], event[4], event)
 
         elseif event[1] == 'key' then
             for _, obj in pairs(globalLoop.events.key) do -- CALL OBJs KEY EVENTS
@@ -1854,6 +1819,41 @@ function loop()
         end
 
         os.cancelTimer(Timer) -- DELETE TIMER
+    end
+end
+
+function drawLoopOBJs()
+    if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
+        globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
+        for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
+            local obj = globalLoop.group[globalLoop.selectedGroup][i]
+            obj:draw()
+        end
+        local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
+        for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
+            setMonitor(monitorName)
+            globalLoop.callbacks.onMonitorChange(monitorName)
+            for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
+                local obj = globalLoop.group[globalLoop.selectedGroup][i]
+                obj:draw()
+            end
+        end
+        setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
+    else
+        for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
+            local obj = globalLoop.group[globalLoop.selectedGroup][i]
+            obj:draw()
+        end
+    end
+end
+
+function updateLoopOBJs(_x, _y, _event)
+    assert(type(_x) == 'number', 'updateLoopOBJs: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'updateLoopOBJs: y must be a number, got '..type(_y))
+    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
+        if obj:update(_x, _y, _event) then
+            break
+        end
     end
 end
 
