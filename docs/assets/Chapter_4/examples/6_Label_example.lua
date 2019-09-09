@@ -46,7 +46,7 @@ label:setCallback(
 
 -- Adding loop group 'Main' and putting the Label in it
 APLib.addLoopGroup('Main', {label})
--- Setting 'Main' ad the current loop group
+-- Setting 'Main' as the current loop group
 APLib.setLoopGroup('Main')
 
 

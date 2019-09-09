@@ -4,7 +4,7 @@
 
 # Basics
 
-**doc** revision: **2**
+**doc** revision: **3**
 
 ## 1. Importing the Library
 
@@ -354,7 +354,7 @@ Loop functions:
 | *setLoopCallback*   | **event**, **callback**  | *nil*  | *Sets a **callback for the loop**<br />(check [event](#2-event) table)* |
 | *loopAutoClear*     | **bool**                 | *nil*  | *Makes the **loop clear the screen every time<br />it draws objects*** |
 | *addLoopGroup*      | **groupName**, **group** | *nil*  | ***Adds group to groupName on loop groups<br />where group is an Array of objects***<br />*NOTE: the first object on the group is the one<br />on top of everything and the first one to be updated<br />so [Menu]() should be put first as an example.* |
-| *setLoopGroup*      | **groupName**            | *nil*  | ***Sets currently active loop group**<br />(default: 'None')* |
+| *setLoopGroup*      | **groupName**            | *nil*  | ***Sets currently active loop group***<br />*(default: 'None')* |
 | *resetLoopSettings* |                          | *nil*  | ***Deletes every custom loop group***                        |
 | *stopLoop*          |                          | *nil*  | ***Stops the loop***                                         |
 | *loop*              |                          | *nil*  | ***Starts the loop***                                        |
@@ -395,7 +395,7 @@ header:setCallback(
 
 -- Adding loop group 'Main' and putting the Header in it
 APLib.addLoopGroup('Main', {header})
--- Setting 'Main' ad the current loop group
+-- Setting 'Main' as the current loop group
 APLib.setLoopGroup('Main')
 
 
@@ -454,6 +454,7 @@ It's only got ['Universal events'](#3-universal-events).
 Already done in [Making the loop easy (kind of)](#4-making-the-loop-easy-kind-of) and ['Universal methods'](#2-universal-methods)
 
 
+
 ### 6. Label
 
 It's **just a [text](#10-text-x-y-text) but as an object**, so it stays in a variable and it's x and y can be changed on the fly.
@@ -502,7 +503,7 @@ label:setCallback(
 
 -- Adding loop group 'Main' and putting the Label in it
 APLib.addLoopGroup('Main', {label})
--- Setting 'Main' ad the current loop group
+-- Setting 'Main' as the current loop group
 APLib.setLoopGroup('Main')
 
 
@@ -553,6 +554,134 @@ APLib.resetLoopSettings()
 APLib.bClear()
 
 ```
+
+
+
+### 7. Button
+
+It's just a [rectangle](#12-rectangle-x1-y1-x2-y2) that changes color depending on `self.state`.
+NOTE: Button's text could go out of it if it's too long.
+
+#### 1. Button Functions
+
+It's only got ['Universal methods'](#2-universal-methods).
+
+#### 2. Button Events
+
+It's only got ['Universal events'](#3-universal-events).
+
+#### 3. Button Example
+
+```lua
+-- API already loaded
+
+-- create a button with blue text color and 'transparent' background text color
+-- that says 'Button' from x = 1, y = 1, to x = 10, y = 5
+-- When it's on a true state it will be green and when on a false state red
+local button = APLib.Button.new(1, 1, 10, 5, 'Button', colors.blue, nil, colors.green, colors.red)
+
+-- creating onPress button callback
+button:setCallback(
+	APLib.event.button.onPress,
+    function (self, event)
+        -- if when the button was pressed its state was changed to true then
+        if self.state then
+            local _colors = {colors.blue, colors.yellow, colors.white}
+            -- pick a random color from _colors array and change button's text color to it
+            self.colors.textColor = _colors[math.random(#_colors)]
+            self:draw()
+            -- switching button's state to its false one after .5 seconds
+            sleep(0.5)
+            self.state = false
+        end
+    end
+)
+
+-- Adding loop group 'Main' and putting the button in it
+APLib.addLoopGroup('Main', {button})
+-- Setting 'Main' as the current loop group
+APLib.setLoopGroup('Main')
+
+-- This time i'm keeping the default clock and timer's speeds
+
+-- Drawing on loop event
+APLib.drawOnLoopEvent()
+
+-- I'm lazy so i don't want to clear the screen by myself
+APLib.loopAutoClear(true)
+
+-- Adding loop callback onInit and onEvent
+APLib.setLoopCallback(
+	APLib.event.loop.onInit,
+    function ()
+        print('Starting loop in 1 sec!')
+        sleep(1)
+        APLib.bClear()
+    end
+)
+
+APLib.setLoopCallback(
+	APLib.event.loop.onEvent,
+    function (event)
+        if event[1] == 'key' then
+            -- making the button move depending on which arrow key was pressed
+            if event[2] == 200 then -- UP_ARROW_KEY
+                button.pos.y1 = button.pos.y1 - 1 -- making the button go up by 1 pixel
+                button.pos.y2 = button.pos.y2 - 1
+            elseif event[2] == 208 then -- DOWN_ARROW_KEY
+                button.pos.y1 = button.pos.y1 + 1 -- making the button go down by 1 pixel
+                button.pos.y2 = button.pos.y2 + 1
+            elseif event[2] == 205 then -- RIGHT_ARROW_KEY
+                button.pos.x1 = button.pos.x1 + 1 -- making the button go right by 1 pixel
+                button.pos.x2 = button.pos.x2 + 1
+            elseif event[2] == 203 then -- LEFT_ARROW_KEY
+                button.pos.x1 = button.pos.x1 - 1 -- making the button go left by 1 pixel
+                button.pos.x2 = button.pos.x2 - 1
+            -- if another key was pressed then stop loop
+            else
+        		APLib.stopLoop()
+            end
+    	end
+    end
+)
+
+-- Starting the loop
+APLib.loop()
+-- If loop ends then reset loop groups
+APLib.resetLoopSettings()
+-- Clearing screen
+APLib.bClear()
+
+```
+
+
+
+### 7. Menu
+
+It's basically an array of [Buttons](#7-button) but when it's drawn it draws all of them and when updated it updates all of them too.
+NOTE: I'm sorry but [Menu](#7-menu) can't be moved... sorry, won't do a moving menu in the example.
+
+#### 1. Menu Functions
+
+It's got ['Universal methods'](#2-universal-methods) and also:
+
+| function | args                    | return | desc                                                         |
+| -------- | ----------------------- | ------ | ------------------------------------------------------------ |
+| *set*    | **table**, **fillmenu** | *nil*  | ***Puts table (of [buttons](#7-button)) into itself*** *and if* ***fillmenu is set to true*** *it will resize all* ***buttons*** *to* ***fit perfectly in it and it will reject if there's more than it can hold****.* |
+
+
+
+#### 2. Menu Events 
+
+It's got ['Universal events'](#3-universal-events) and also:
+
+| event           | desc                                                         |
+| --------------- | ------------------------------------------------------------ |
+| *onButtonPress* | *When **a button in that menu is pressed** it will call this event with args:*<br />*1. The **object** itself.*<br />*2. The **button that was pressed**.*<br />*3. The **event** that was passed through [Update 'Universal method'](#2-universal-methods).* |
+
+
+
+#### 3. Menu Example
 
 
 

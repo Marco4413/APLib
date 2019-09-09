@@ -48,7 +48,7 @@ header:setCallback(
 
 -- Adding loop group 'Main' and putting the Header in it
 APLib.addLoopGroup('Main', {header})
--- Setting 'Main' ad the current loop group
+-- Setting 'Main' as the current loop group
 APLib.setLoopGroup('Main')
 
 
