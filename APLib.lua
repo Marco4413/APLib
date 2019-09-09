@@ -1,5 +1,5 @@
 
-ver = '1.6.0'
+ver = '1.6.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -820,6 +820,7 @@ function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _
         hidden = false,
         value = {
             draw = _drawValue,
+            drawOnPB = true,
             percentage = nil,
             current = nil,
             max = _max,
@@ -862,41 +863,113 @@ function PercentageBar:draw()
         --SETTING THINGS TO PERCENTAGEBAR SETTINGS
         setRectangleType(rectangleTypes.filled)
 
+        local _barX2 = self.pos.x1 + ((self.pos.x2 - self.pos.x1) * self.value.percentage / 100)
+
         if self.colors.backgroundBarColor then -- DRAW PERCENTAGE BAR WITH BACKGROUND
             setColor(self.colors.backgroundBarColor)
             rectangle(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2)
 
             if self.value.percentage > 0 then
                 setColor(self.colors.barColor)
-                rectangle(self.pos.x1, self.pos.y1, self.pos.x1 + ((self.pos.x2 - self.pos.x1) * self.value.percentage / 100), self.pos.y2)
+                rectangle(self.pos.x1, self.pos.y1, _barX2, self.pos.y2)
             end
         else -- DRAW PERCENTAGE BAR WITHOUT BACKGROUND
             if self.value.percentage > 0 then
                 setColor(self.colors.barColor)
-                rectangle(self.pos.x1, self.pos.y1, self.pos.x1 + ((self.pos.x2 - self.pos.x1) * self.value.percentage / 100), self.pos.y2)
+                rectangle(self.pos.x1, self.pos.y1, _barX2, self.pos.y2)
             end
         end
 
         if self.value.draw then -- DRAW PB VALUE IF THE SETTING IS ENABLED
             
-            -- CENTER VALUE ON PB
-            local _valueX = self.pos.x1 + math.floor((self.pos.x2 - self.pos.x1 - string.len(self.value.percentage..'%') + 1) / 2)
+            -- STORE VALUE IN A VARIABLE
+            local _valueText = self.value.percentage..'%'
+
+            -- CENTER VALUE ON X AXIS
+            local _valueX = self.pos.x1 + math.floor((self.pos.x2 - self.pos.x1 - string.len(_valueText) + 1) / 2)
             
+            -- CENTER VALUE ON Y AXIS DEPENDING ON VALUE MODE
             local _valueY
-            if self.pos.y1 > self.pos.y2 then
-                _valueY = self.pos.y1 + 1
+
+            if self.value.drawOnPB then
+                _valueY = self.pos.y1 + math.floor((self.pos.y2 - self.pos.y1) / 2)
             else
-                _valueY = self.pos.y2 + 1
+                if self.pos.y1 > self.pos.y2 then
+                    _valueY = self.pos.y1 + 1
+                else
+                    _valueY = self.pos.y2 + 1
+                end
             end
 
-            setTextColor(self.colors.valueColor) -- SET VALUE COLOR
-            if self.colors.backgroundValueColor then -- CHECK IF THE BG COLOR IS SPECIFIED
+            -- SET VALUE COLOR
+            setTextColor(self.colors.valueColor)
+
+            if self.colors.backgroundValueColor then -- IF VALUE HAS A BACKGROUND COLOR WE JUST NEED TO WRITE IT
+
                 setBackgroundTextColor(self.colors.backgroundValueColor)
-            else -- IF NOT SPECIFIED
-                setBackgroundTextColor(backgroundColor)
-            end
-            text(_valueX, _valueY, self.value.percentage..'%')
+
+                text(_valueX, _valueY, _valueText)
+
+            else -- IF IT HASN'T ONE IS A BIT HARDER
+                if self.value.drawOnPB then -- CHECK IF IT NEEDS TO BE DRAWN ON THE BAR
+
+                    if self.colors.backgroundBarColor then -- IF BAR HAS A BACKGROUND SET TEXT BG TO IT
+                        setBackgroundTextColor(self.colors.backgroundBarColor)
+                    else -- IF NOT SET IT TO THE MONITOR'S CURRENT ONE
+                        setBackgroundTextColor(backgroundColor)
+                    end
+
+                    if self.pos.x1 < self.pos.x2 then -- IF THE BAR ISN'T FLIPPED THEN
+                        -- CALCULATE HOW MUCH OF THE VALUE IS COVERED BY IT
+                        local _valueColoredByBar = math.floor(_barX2) - _valueX + 1
+
+                        -- HOW MUCH THE VALUE IS COVERED SHOULD BE BETWEEN 0 AND THE NUMBER OF CHAR OF _valueText
+                        if _valueColoredByBar < 0 then
+                            _valueColoredByBar = 0
+                        elseif _valueColoredByBar > string.len(_valueText) then
+                            _valueColoredByBar = string.len(_valueText)
+                        end
+
+                        -- IF VALUE ISN'T ALREADY FULLY COVERED BY BAR THEN DRAW TEXT WITH BAR BACKGROUND OR THE MONITOR ONE
+                        if _valueColoredByBar < string.len(_valueText) then
+                            text(_valueX, _valueY, _valueText)
+                        end
+
+                        -- IF VALUE IS PARTIALLY COVERED THEN DRAW TEXT WITH BAR COLOR ON TOP OF THE ONE WITHOUT IT
+                        if _valueColoredByBar > 0 then
+                            setBackgroundTextColor(self.colors.barColor)
         
+                            text(_valueX, _valueY, string.sub(_valueText, 1, _valueColoredByBar))
+                        end
+                    else
+                        -- CALCULATE HOW MUCH OF THE VALUE IS COVERED BY IT
+                        local _valueColoredByBar = _valueX + string.len(_valueText) - math.ceil(_barX2)
+
+                        -- HOW MUCH THE VALUE IS COVERED SHOULD BE BETWEEN 0 AND THE NUMBER OF CHAR OF _valueText
+                        if _valueColoredByBar < 0 then
+                            _valueColoredByBar = 0
+                        elseif _valueColoredByBar > string.len(_valueText) then
+                            _valueColoredByBar = string.len(_valueText)
+                        end
+
+                        -- IF VALUE ISN'T ALREADY FULLY COVERED BY BAR THEN DRAW TEXT WITH BAR BACKGROUND OR THE MONITOR ONE
+                        if _valueColoredByBar < string.len(_valueText) then
+                            text(_valueX, _valueY, _valueText)
+                        end
+
+                        -- IF VALUE IS PARTIALLY COVERED THEN DRAW TEXT WITH BAR COLOR ON TOP OF THE ONE WITHOUT IT
+                        if _valueColoredByBar > 0 then
+                            setBackgroundTextColor(self.colors.barColor)
+        
+                            text(_valueX + string.len(_valueText) - _valueColoredByBar, _valueY, string.sub(_valueText, -_valueColoredByBar))
+                        end
+                    end
+
+                else -- IF IT DOESN'T NEED TO BE DRAWN ON TOP OF THE BAR THEN SIMPLY DRAW IT
+                    setBackgroundTextColor(backgroundColor)
+                    text(_valueX, _valueY, self.value.percentage..'%')
+                end
+            end
         end
 
         --REVERTING ALL CHANGES MADE BEFORE
