@@ -1,5 +1,5 @@
 
-ver = '1.6.1'
+ver = '1.6.2'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -59,32 +59,39 @@ event = {
     },
     header = {
         onDraw = 1,
-        onPress = 2
+        onPress = 2,
+        onFailedPress = 3
     },
     label = {
         onDraw = 1,
-        onPress = 2
+        onPress = 2,
+        onFailedPress = 3
     },
     button = {
         onDraw = 1,
-        onPress = 2
+        onPress = 2,
+        onFailedPress = 3
     },
     menu = {
         onDraw = 1,
         onPress = 2,
-        onButtonPress = 3
+        onFailedPress = 3,
+        onButtonPress = 4,
+        onFailedButtonPress = 5
     },
     percentagebar = {
         onDraw = 1,
-        onPress = 2
+        onPress = 2,
+        onFailedPress = 3
     },
     memo = {
         onDraw = 1,
         onPress = 2,
-        onEdit = 3,
-        onCursorBlink = 4,
-        onActivated = 5,
-        onDeactivated = 6
+        onFailedPress = 3,
+        onEdit = 4,
+        onCursorBlink = 5,
+        onActivated = 6,
+        onDeactivated = 7
     },
     loop = {
         onInit = 1,
@@ -336,7 +343,8 @@ function Header.new(_y, _text, _textColor, _backgroundTextColor)
         },
         callbacks = {
             onDraw = function() end,
-            onPress = function() end
+            onPress = function() end,
+            onFailedPress = function() end
         }
     }
     setmetatable(_newHeader, Header) --SET HEADER METATABLE
@@ -377,6 +385,8 @@ function Header:setCallback(_event, _callback)
         self.callbacks.onDraw = _callback
     elseif _event == 2 then
         self.callbacks.onPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onFailedPress = _callback
     end
 end
 
@@ -392,6 +402,7 @@ function Header:update(_x, _y, _event)
             self.callbacks.onPress(self, _event)
             return true
         else
+            self.callbacks.onFailedPress(self, _event)
             return false
         end
     end
@@ -438,7 +449,8 @@ function Label.new(_x, _y, _text, _textColor, _backgroundTextColor)
         },
         callbacks = {
             onDraw = function() end,
-            onPress = function() end
+            onPress = function() end,
+            onFailedPress = function() end
         }
     }
     setmetatable(_newLabel, Label) --SET LABEL METATABLE
@@ -478,6 +490,8 @@ function Label:setCallback(_event, _callback)
         self.callbacks.onDraw = _callback
     elseif _event == 2 then
         self.callbacks.onPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onFailedPress = _callback
     end
 end
 
@@ -492,6 +506,7 @@ function Label:update(_x, _y, _event)
             self.callbacks.onPress(self, _event)
             return true
         else
+            self.callbacks.onFailedPress(self, _event)
             return false
         end
     end
@@ -553,7 +568,8 @@ function Button.new(_x1, _y1, _x2, _y2, _text, _textColor, _backgroundTextColor,
         },
         callbacks = {
             onDraw = function() end,
-            onPress = function() end
+            onPress = function() end,
+            onFailedPress = function() end
         }
     }
     setmetatable(_newButton, Button) --SET BUTTON METATABLE
@@ -609,6 +625,8 @@ function Button:setCallback(_event, _callback)
         self.callbacks.onDraw = _callback
     elseif _event == 2 then
         self.callbacks.onPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onFailedPress = _callback
     end
 end
 
@@ -623,6 +641,7 @@ function Button:update(_x, _y, _event)
             self.callbacks.onPress(self, _event)
             return true
         else
+            self.callbacks.onFailedPress(self, _event)
             return false
         end
     end
@@ -669,7 +688,9 @@ function Menu.new(_x1, _y1, _x2, _y2, _color)
         callbacks = {
             onDraw = function() end,
             onPress = function() end,
-            onButtonPress = function() end
+            onFailedPress = function() end,
+            onButtonPress = function() end,
+            onFailedButtonPress = function() end
         }
     }
     setmetatable(_newMenu, Menu) --SET MENU METATABLE
@@ -705,7 +726,11 @@ function Menu:setCallback(_event, _callback)
     elseif _event == 2 then
         self.callbacks.onPress = _callback
     elseif _event == 3 then
+        self.callbacks.onFailedPress = _callback
+    elseif _event == 4 then
         self.callbacks.onButtonPress = _callback
+    elseif _event == 5 then
+        self.callbacks.onFailedButtonPress = _callback
     end
 end
 
@@ -770,10 +795,13 @@ function Menu:update(_x, _y, _event)
                 if obj:update(_x, _y, _event) then
                     self.callbacks.onButtonPress(self, obj, _event)
                     break
+                else
+                    self.callbacks.onFailedButtonPress(self, obj, _event)
                 end
             end
             return true
         else
+            self.callbacks.onFailedPress(self, _event)
             return false
         end
     end
@@ -840,7 +868,8 @@ function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _
         },
         callbacks = {
             onDraw = function() end,
-            onPress = function() end
+            onPress = function() end,
+            onFailedPress = function() end
         }
     }
 
@@ -986,6 +1015,8 @@ function PercentageBar:setCallback(_event, _callback)
         self.callbacks.onDraw = _callback
     elseif _event == 2 then
         self.callbacks.onPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onFailedPress = _callback
     end
 end
 
@@ -1007,6 +1038,7 @@ function PercentageBar:update(_x, _y, _event)
             self.callbacks.onPress(self, _event)
             return true
         else
+            self.callbacks.onFailedPress(self, _event)
             return false
         end
     end
@@ -1094,6 +1126,7 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
         callbacks = {
             onDraw = function() end,
             onPress = function() end,
+            onFailedPress = function() end,
             onEdit = function() end,
             onCursorBlink = function() end,
             onActivated = function() end,
@@ -1203,12 +1236,14 @@ function Memo:setCallback(_event, _callback)
     elseif _event == 2 then
         self.callbacks.onPress = _callback
     elseif _event == 3 then
-        self.callbacks.onEdit = _callback
+        self.callbacks.onFailedPress = _callback
     elseif _event == 4 then
-        self.callbacks.onCursorBlink = _callback
+        self.callbacks.onEdit = _callback
     elseif _event == 5 then
-        self.callbacks.onActivated = _callback
+        self.callbacks.onCursorBlink = _callback
     elseif _event == 6 then
+        self.callbacks.onActivated = _callback
+    elseif _event == 7 then
         self.callbacks.onDeactivated = _callback
     end
 end
@@ -1605,6 +1640,7 @@ function Memo:update(_x, _y, _event)
 
             return true
         else
+            self.callbacks.onFailedPress(self, _event)
             if self.active then
                 self.active = false
                 self.callbacks.onDeactivated(self, _event)
