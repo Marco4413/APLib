@@ -1,5 +1,5 @@
 
-ver = '1.6.2'
+ver = '1.7.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -1101,7 +1101,11 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
             keyEvent = true
         },
         cursor = {
-            color = _cursorColor,
+            text = ' ',
+            colors = {
+                textColor = _textColor,
+                backgroundTextColor = _cursorColor
+            },
             visible = false,
             blink = {
                 enabled = false,
@@ -1140,92 +1144,93 @@ end
 
 function Memo:draw()
     if not self.hidden then
-    self.callbacks.onDraw(self)
+        self.callbacks.onDraw(self)
 
-    local oldRectType = globalRectangleType
-    local oldColor = globalColor
-    local oldTextColor = globalTextColor
-    local oldBackgroundTextColor = globalBackgroundTextColor
+        local oldRectType = globalRectangleType
+        local oldColor = globalColor
+        local oldTextColor = globalTextColor
+        local oldBackgroundTextColor = globalBackgroundTextColor
 
-    local backgroundColor = globalMonitor.getBackgroundColor()
+        local backgroundColor = globalMonitor.getBackgroundColor()
 
-    -- SORT Xs AND Ys
-    local _memoX1, _memoX2, _memoY1, _memoY2
-    if self.pos.x1 > self.pos.x2 then
-        _memoX1 = self.pos.x2
-        _memoX2 = self.pos.x1
-    else
-        _memoX1 = self.pos.x1
-        _memoX2 = self.pos.x2
-    end
-    if self.pos.y1 > self.pos.y2 then
-        _memoY1 = self.pos.y2
-        _memoY2 = self.pos.y1
-    else
-        _memoY1 = self.pos.y1
-        _memoY2 = self.pos.y2
-    end
-    
-    -- SETTING THINGS TO MEMO SETTINGS
+        -- SORT Xs AND Ys
+        local _memoX1, _memoX2, _memoY1, _memoY2
+        if self.pos.x1 > self.pos.x2 then
+            _memoX1 = self.pos.x2
+            _memoX2 = self.pos.x1
+        else
+            _memoX1 = self.pos.x1
+            _memoX2 = self.pos.x2
+        end
+        if self.pos.y1 > self.pos.y2 then
+            _memoY1 = self.pos.y2
+            _memoY2 = self.pos.y1
+        else
+            _memoY1 = self.pos.y1
+            _memoY2 = self.pos.y2
+        end
+        
+        -- SETTING THINGS TO MEMO SETTINGS
 
-    setRectangleType(rectangleTypes.filled)
-    setColor(self.colors.color)
-    setTextColor(self.colors.textColor)
-    setBackgroundTextColor(self.colors.backgroundTextColor)
+        setRectangleType(rectangleTypes.filled)
+        setColor(self.colors.color)
+        setTextColor(self.colors.textColor)
+        setBackgroundTextColor(self.colors.backgroundTextColor)
 
-    rectangle(_memoX1, _memoY1, _memoX2, _memoY2)
+        rectangle(_memoX1, _memoY1, _memoX2, _memoY2)
 
-    -- GET WIDTH AND HEIGHT OF THE SQUARE
-    local _width = _memoX2 - _memoX1
-    local _height = _memoY2 - _memoY1
+        -- GET WIDTH AND HEIGHT OF THE SQUARE
+        local _width = _memoX2 - _memoX1
+        local _height = _memoY2 - _memoY1
 
-    -- MAKING THE CURSOR NOT GO OUT OF BOUNDS
-    local _cursorScreenPos = {
-        x = self.cursor.pos.char - 1,
-        y = self.cursor.pos.line - 1
-    }
-    if _cursorScreenPos.x > _width then
-        _cursorScreenPos.x = _width
-    elseif _cursorScreenPos.x < 0 then
-        _cursorScreenPos.x = 0
-    end
-    if _cursorScreenPos.y > _height then
-        _cursorScreenPos.y = _height
-    elseif _cursorScreenPos.y < 0 then
-        _cursorScreenPos.y = 0
-    end
+        -- MAKING THE CURSOR NOT GO OUT OF BOUNDS
+        local _cursorScreenPos = {
+            x = self.cursor.pos.char - 1,
+            y = self.cursor.pos.line - 1
+        }
+        if _cursorScreenPos.x > _width then
+            _cursorScreenPos.x = _width
+        elseif _cursorScreenPos.x < 0 then
+            _cursorScreenPos.x = 0
+        end
+        if _cursorScreenPos.y > _height then
+            _cursorScreenPos.y = _height
+        elseif _cursorScreenPos.y < 0 then
+            _cursorScreenPos.y = 0
+        end
 
-    -- FOR EVERY Y IN THE SQUARE
-    for i=0, math.abs(_memoY2 - _memoY1) do
-        if self.cursor.pos.line - 1 <= _height then -- IF THE CURSOR IS LESS THAN THE HEIGHT OF THE SQUARE
-            if self.lines[i + 1] then -- IF LINE EXISTS
-                if self.cursor.pos.char - 1 <= _width then -- IF THE CURSOR IS LESS THEN THE WIDTH OF THE SQUARE
-                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1], 1, _width + 1))
-                else -- IF THE CURSOR IS MORE THEN THE WIDTH OF THE SQUARE
-                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1], self.cursor.pos.char - _width, self.cursor.pos.char))
+        -- FOR EVERY Y IN THE SQUARE
+        for i=0, math.abs(_memoY2 - _memoY1) do
+            if self.cursor.pos.line - 1 <= _height then -- IF THE CURSOR IS LESS THAN THE HEIGHT OF THE SQUARE
+                if self.lines[i + 1] then -- IF LINE EXISTS
+                    if self.cursor.pos.char - 1 <= _width then -- IF THE CURSOR IS LESS THEN THE WIDTH OF THE SQUARE
+                        text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1], 1, _width + 1))
+                    else -- IF THE CURSOR IS MORE THEN THE WIDTH OF THE SQUARE
+                        text(_memoX1, _memoY1 + i, string.sub(self.lines[i + 1], self.cursor.pos.char - _width, self.cursor.pos.char))
+                    end
                 end
-            end
-        else -- IF THE CURSOR IS MORE THAN THE HEIGHT OF THE SQUARE
-            if self.lines[i + self.cursor.pos.line - _height] then -- IF LINE EXISTS
-                if self.cursor.pos.char - 1 <= _width then -- IF THE CURSOR IS LESS THEN THE WIDTH OF THE SQUARE
-                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + self.cursor.pos.line - _height], 1, _width + 1))
-                else -- IF THE CURSOR IS MORE THEN THE WIDTH OF THE SQUARE
-                    text(_memoX1, _memoY1 + i, string.sub(self.lines[i + self.cursor.pos.line - _height], self.cursor.pos.char - _width, self.cursor.pos.char))
+            else -- IF THE CURSOR IS MORE THAN THE HEIGHT OF THE SQUARE
+                if self.lines[i + self.cursor.pos.line - _height] then -- IF LINE EXISTS
+                    if self.cursor.pos.char - 1 <= _width then -- IF THE CURSOR IS LESS THEN THE WIDTH OF THE SQUARE
+                        text(_memoX1, _memoY1 + i, string.sub(self.lines[i + self.cursor.pos.line - _height], 1, _width + 1))
+                    else -- IF THE CURSOR IS MORE THEN THE WIDTH OF THE SQUARE
+                        text(_memoX1, _memoY1 + i, string.sub(self.lines[i + self.cursor.pos.line - _height], self.cursor.pos.char - _width, self.cursor.pos.char))
+                    end
                 end
             end
         end
-    end
 
-    if self.cursor.visible then
-        setColor(self.cursor.color)
-        point(_memoX1 + _cursorScreenPos.x, _memoY1 + _cursorScreenPos.y) -- DRAW CURSOR
-    end
+        if self.cursor.visible then
+            setTextColor(self.cursor.colors.textColor)
+            setBackgroundTextColor(self.cursor.colors.backgroundTextColor)
+            text(_memoX1 + _cursorScreenPos.x, _memoY1 + _cursorScreenPos.y, self.cursor.text) -- DRAW CURSOR
+        end
 
-    -- REVERTING ALL CHANGES MADE BEFORE
-    setRectangleType(oldRectType)
-    setColor(oldColor)
-    setTextColor(oldTextColor)
-    setBackgroundTextColor(oldBackgroundTextColor)
+        -- REVERTING ALL CHANGES MADE BEFORE
+        setRectangleType(oldRectType)
+        setColor(oldColor)
+        setTextColor(oldTextColor)
+        setBackgroundTextColor(oldBackgroundTextColor)
     end
 end
 
@@ -1820,6 +1825,12 @@ function resetLoopSettings()
         none = {},
         LIBPrivate = globalLoop.group.LIBPrivate
     } --CLEARS LOOP GROUPS
+
+    globalLoop.events = {
+        tick = {},
+        key = {},
+        char = {}
+    } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
 end
 
 function stopLoop()
@@ -1829,12 +1840,18 @@ function stopLoop()
         tick = {},
         key = {},
         char = {}
-    }
+    } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
 end
 
 function loop()
 
     local function updateGlobalLoopEvents()
+        globalLoop.events = {
+            tick = {},
+            key = {},
+            char = {}
+        } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
+
         for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do
             if obj.tick then
                 table.insert(globalLoop.events.tick, obj)
@@ -1883,7 +1900,7 @@ function loop()
 
         elseif event[1] == 'key' then
             for _, obj in pairs(globalLoop.events.key) do -- CALL OBJs KEY EVENTS
-                obj:key(event)
+               obj:key(event)
             end
 
         elseif event[1] == 'char' then
@@ -1960,9 +1977,7 @@ function updateLoopOBJs(_x, _y, _event)
     assert(type(_x) == 'number', 'updateLoopOBJs: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'updateLoopOBJs: y must be a number, got '..type(_y))
     for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
-        if obj:update(_x, _y, _event) then
-            break
-        end
+        obj:update(_x, _y, _event)
     end
 end
 
