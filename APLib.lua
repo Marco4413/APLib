@@ -1,5 +1,5 @@
 
-ver = '1.7.0'
+ver = '1.8.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -111,6 +111,29 @@ function tableHas(_table, _value)
     end
     return false
 end
+
+OSSettings = {
+    settingsPath = '/.settings', -- PUT SETTINGS PATH IN OSSETTINGS
+
+    set = function (_entry, _value)
+        assert(type(_value) ~= 'nil', "OSSettings.set: value can't be nil, got "..type(_value))
+        settings.set(tostring(_entry), _value) -- SET SETTINGS VALUE
+        return settings.save(OSSettings.settingsPath) -- SAVE SETTINGS
+    end,
+
+    get = function (_entry) -- COPY SETTING'S get FUNCTION
+        return settings.get(tostring(_entry))
+    end,
+
+    getNames = function () -- COPY SETTING'S getNames FUNCTION
+        return settings.getNames()
+    end,
+
+    unset = function (_entry)
+        settings.unset(tostring(_entry)) -- UNSET SETTINGS VALUE
+        return settings.save(OSSettings.settingsPath) -- SAVE SETTINGS
+    end
+}
 
 function setGlobalCallback(_event, _callback)
     assert(type(_callback) == 'function', 'setGlobalCallback: callback must be a function, got '..type(_callback))
@@ -1989,15 +2012,28 @@ if table.maxn(tArgs) > 0 then
             print('Lib version: '..ver)
         elseif tArgs[1] == 'setup' then -- OPTION SETUP
             if shell then -- CHECKING IF SHELL API IS AVAILABLE
-                local _settingsPath = '/.settings'
                 local _LibPath = '/'..shell.getRunningProgram()
-                settings.set('APLibPath', _LibPath)
-                settings.save(_settingsPath)
+                OSSettings.set('APLibPath', _LibPath)
                 print('Setup completed!\nAPLibPath: '..tostring(settings.get('APLibPath')))
                 sleep(2)
                 os.reboot() -- REBOOTING AFTER SETUP
             else
                 error("Setup failed, shell API not available!")
+            end
+        elseif tArgs[1] == 'create' then -- OPTION CREATE
+            if tArgs[2] then
+                local _file = fs.open('/'..tostring(tArgs[2]), 'w') -- OPEN FILE WITH NAME tArgs[1]
+                if _file then -- IF FILE WAS OPENED THEN
+                    -- STORE TEXT IN A VARIABLE
+                    local _text = "assert(  -- check if setup was done before, if not return with an error\n    type(settings.get('APLibPath')) == 'string',\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."        settings.get('APLibPath')\n"..'    ).."'.."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"..'"\n)\n\n'.."assert( -- check if API is still there, if not return with an error\n    fs.exists(settings.get('APLibPath')),\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."    	settings.get('APLibPath')\n    ).."..'"'.."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"..'"\n)\n\n'.."os.loadAPI(settings.get('APLibPath')) -- load API with CraftOS's built-in feature\n\n"
+                    _file.write(_text) -- WRITE TEXT IN THE FILE
+                    _file.close() -- CLOSE THE FILE
+                    print('File succesfully created!')
+                else
+                    print("Couldn't create file.")
+                end
+            else
+                print('You must specify the name of the file you want to create.')
             end
         end
     end
