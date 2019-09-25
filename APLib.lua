@@ -1,5 +1,5 @@
 
-ver = '1.8.0'
+ver = '1.8.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -2025,7 +2025,7 @@ if table.maxn(tArgs) > 0 then
                 local _file = fs.open('/'..tostring(tArgs[2]), 'w') -- OPEN FILE WITH NAME tArgs[1]
                 if _file then -- IF FILE WAS OPENED THEN
                     -- STORE TEXT IN A VARIABLE
-                    local _text = "assert(  -- check if setup was done before, if not return with an error\n    type(settings.get('APLibPath')) == 'string',\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."        settings.get('APLibPath')\n"..'    ).."'.."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"..'"\n)\n\n'.."assert( -- check if API is still there, if not return with an error\n    fs.exists(settings.get('APLibPath')),\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."    	settings.get('APLibPath')\n    ).."..'"'.."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"..'"\n)\n\n'.."os.loadAPI(settings.get('APLibPath')) -- load API with CraftOS's built-in feature\n\n"
+                    local _text = "\n-- //AUTO-GENERATED-CODE//\nassert(  -- check if setup was done before, if not return with an error\n    type(settings.get('APLibPath')) == 'string',\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."        settings.get('APLibPath')\n"..'    ).."'.."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"..'"\n)\n\n'.."assert( -- check if API is still there, if not return with an error\n    fs.exists(settings.get('APLibPath')),\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."    	settings.get('APLibPath')\n    ).."..'"'.."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"..'"\n)\n\n'.."os.loadAPI(settings.get('APLibPath')) -- load API with CraftOS's built-in feature\n-- //--//\n\n"
                     _file.write(_text) -- WRITE TEXT IN THE FILE
                     _file.close() -- CLOSE THE FILE
                     print('File succesfully created!')
