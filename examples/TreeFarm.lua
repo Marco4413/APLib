@@ -19,19 +19,24 @@ os.loadAPI(settings.get('APLibPath')) -- load API with CraftOS's built-in featur
 
 -- PARAMS
 
-local wallDistance = 2
+-- BASIC
+local chestDistance = 2
 local treeHeight = 6 -- OAK TREE HEIGHT
+
+-- ADVANCED
 local saplingID = 'minecraft:sapling' -- SAPLING ID
 local logID = 'minecraft:log' -- OAK BLOCK ID
+local turtleFacing = '' -- LEAVE IT EMPTY IF YOU DON'T KNOW WHAT YOU'RE DOING
 local refuelSlot = 1
 local saplingSlot = 2
+local facingSlot = 3
 local dropSlots = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 
 turtle.select(dropSlots[1])
 
 -- MEMO
 
-local meConsole = APLib.Memo.new(2, 8, 38, 12, nil, nil, colors.gray)
+local meConsole = APLib.Memo.new(2, 2, 38, 12, nil, nil, colors.gray)
 meConsole:editable(false)
 meConsole:limits(false)
 
@@ -61,7 +66,7 @@ end
 local function refuel()
     if not (turtle.getFuelLevel() > 0) then
         local lastSlot = turtle.getSelectedSlot()
-        local fuelCount = turtle.getItemCount()
+        local fuelCount = turtle.getItemCount(refuelSlot)
 
         if fuelCount > 1 then
             turtle.select(refuelSlot)
@@ -154,14 +159,12 @@ local function treeStock()
 
         if saplingFound then
             turtle.select(lastSlot)
-            refuel()
-            turtle.forward()
             print('Sapling found!')
             return
         end
 
         -- // 2 //
-        for i=1, wallDistance - 1 do
+        for i=1, chestDistance - 1 do
             refuel()
             turtle.back()
         end
@@ -176,9 +179,7 @@ local function treeStock()
                 if item then
                     local itemMeta = item.getMetadata()
                     if itemMeta.name == saplingID then
-                        local chestMeta = chest.getMetadata()
-                        local invertedChestFacing = invertFacing(chestMeta.state.facing)
-                        chest.pushItems(invertedChestFacing, i)
+                        chest.pushItems(turtleFacing, i)
                         saplingFound = true
                     end
                 end
@@ -188,7 +189,10 @@ local function treeStock()
             if saplingFound then
                 turtle.select(lastSlot)
                 refuel()
-                turtle.forward()
+                for i=1, chestDistance - 1 do
+                    refuel()
+                    turtle.forward()
+                end
                 print('Sapling found!')
                 return
             end
@@ -206,12 +210,39 @@ local function treePlant()
     if turtle.place() then
         print('Tree Planted!')
     else
-        print('Tree not Planted...')
+        print('Tree not Planted.')
     end
 
     turtle.select(lastSlot)
 end
 
+local function facing()
+    local lastSlot = turtle.getSelectedSlot()
+
+    turtle.select(facingSlot)
+
+    if turtle.detectUp() then
+        print('Destroying the block')
+        print('  above the turtle...')
+        turtle.digUp()
+    end
+
+    print('Placing chest...')
+    turtle.placeUp()
+
+    print('Figuring out where')
+    print('  the turtle is facing...')
+    local chest = peripheral.wrap('top')
+    local chestMeta = chest.getMetadata()
+    turtleFacing = invertFacing(chestMeta.state.facing)
+
+    print('Turtle is facing: '..turtleFacing)
+    print('Destroying chest!')
+    turtle.digUp()
+    turtle.select(lastSlot)
+
+    dropDownAll()
+end
 
 -- HEADERS
 
@@ -222,7 +253,7 @@ local hTask = APLib.Header.new(3, 'Task Bar')
 
 local bAutoFarm = APLib.Button.new(34, 1, 39, 1, 'Auto', nil, nil, colors.green, colors.red)
 
-local bActions = APLib.Button.new(1, 1, 9, 1, 'Actions', nil, nil, colors.lightGray, colors.gray)
+local bActions = APLib.Button.new(1, 1, 9, 1, 'Tasks', nil, nil, colors.lightGray, colors.gray)
 
 local mbHarvest = APLib.Button.new(0, 0, 0, 0, 'Harvest', nil, nil, colors.blue, colors.green)
 
@@ -337,6 +368,18 @@ APLib.addLoopGroup('main', {mActions, hMain, hTask, bAutoFarm, bActions, pbState
 APLib.setLoopGroup('main')
 
 APLib.setLoopCallback(
+    APLib.event.loop.onInit,
+    function ()
+        facing()
+        meConsole.pos.x1 = 2
+        meConsole.pos.y1 = 8
+        meConsole.pos.x2 = 38
+        meConsole.pos.y2 = 12
+        APLib.bClear()
+    end
+)
+
+APLib.setLoopCallback(
     APLib.event.loop.onClock,
     function (event)
 
@@ -368,6 +411,15 @@ APLib.setLoopCallback(
                     pbState:draw()
                 end
             end
+        end
+    end
+)
+
+APLib.setLoopCallback(
+    APLib.event.loop.onEvent,
+    function (event)
+        if event[1] == 'mouse_scroll' then
+            meConsole:setCursorPos(1, meConsole.cursor.pos.line + event[2])
         end
     end
 )

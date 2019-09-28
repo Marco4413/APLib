@@ -1,5 +1,5 @@
 
-ver = '1.8.1'
+ver = '1.9.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -101,6 +101,25 @@ event = {
         onMonitorChange = 5
     }
 }
+
+function stringSplit(_string, _separator)
+    _string = tostring(_string)
+    _separator = tostring(_separator)
+
+    local _words = {} -- CREATE THE RETURN TABLE
+    while true do -- LOOP
+        local pos = _string:find(_separator)
+        if pos then -- IF SEPARATOR IS IN STRING THEN
+            table.insert(_words, _string:sub(1, pos - 1)) -- PUT THE SEPARATED STRING INTO WORDS
+            _string = _string:sub(pos + 1) -- REMOVE THE STRING THAT WAS PUT INTO WORDS FROM STRING
+        else
+            table.insert(_words, _string)
+            break
+        end
+    end
+
+    return _words
+end
 
 function tableHas(_table, _value)
     assert(type(_table) == 'table', 'tableHas: table must be a table, got '..type(_table))
@@ -1718,42 +1737,57 @@ function Memo:char(_event)
 end
 
 function Memo:write(_string)
+    if not _string then _string = ''; end
     _string = tostring(_string)
 
     if not self.lines[1] then self:setCursorPos(1, 1, true); end -- IF FIRST LINE IS NULL THEN MAKE IT AN EMPTY STRING AND SELECT IT
-    local cursorLine = self.lines[self.cursor.pos.line]
+    self.callbacks.onEdit(self, {'write', _string})
 
-    cursorLine = cursorLine:sub( -- ADD STRING TO THE LINE
-        0,
-        self.cursor.pos.char - 1
-    ).._string..cursorLine:sub(
-        self.cursor.pos.char,
-        #cursorLine
-    )
+    local lines = stringSplit(_string, '\n')
 
-    self.lines[self.cursor.pos.line] = cursorLine
-    self:setCursorPos(self.cursor.pos.char + #_string, self.cursor.pos.line)
-    
-    if self.cursor.limits.enabled then -- IF LIMITS ARE ACTIVE THEN
-        if self.cursor.limits.char then -- IF A LINE CONTAINS MORE CHARS THAN ALLOWED THEN DELETE THE EXTRA ONES
-            if #cursorLine > self.cursor.limits.char then
-                cursorLine = cursorLine:sub(1, self.cursor.limits.char)
+    for key, value in pairs(lines) do
+
+        if key ~= 1 then
+            if self.lines[self.cursor.pos.line + 1] then -- IF A LINE AFTER THE CURRENT ONE EXISTS THEN GO TO IT AND TO THE END OF IT
+                self:setCursorPos(#self.lines[self.cursor.pos.line + 1], self.cursor.pos.line + 1)
+            else -- IF A LINE AFTER THE CURRENT ONE DOESN'T EXISTS THEN CREATE AND GO TO IT
+                self:setCursorPos(1, self.cursor.pos.line + 1, true)
             end
         end
-    end
+        
+        local cursorLine = self.lines[self.cursor.pos.line]
+    
+        cursorLine = cursorLine:sub( -- ADD STRING TO THE LINE
+            0,
+            self.cursor.pos.char - 1
+        )..value..cursorLine:sub(
+            self.cursor.pos.char,
+            #cursorLine
+        )
+    
+        self.lines[self.cursor.pos.line] = cursorLine
+        self:setCursorPos(self.cursor.pos.char + #value, self.cursor.pos.line)
+        
+        if self.cursor.limits.enabled then -- IF LIMITS ARE ACTIVE THEN
+            if self.cursor.limits.char then -- IF A LINE CONTAINS MORE CHARS THAN ALLOWED THEN DELETE THE EXTRA ONES
+                if #cursorLine > self.cursor.limits.char then
+                    cursorLine = cursorLine:sub(1, self.cursor.limits.char)
+                end
+            end
+        end
+    
+        self.lines[self.cursor.pos.line] = cursorLine
 
-    self.lines[self.cursor.pos.line] = cursorLine
+    end
+    
+    
 end
 
 function Memo:print(_string)
+    if not _string then _string = ''; end
     _string = tostring(_string)
 
-    self:write(_string)
-    if self.lines[self.cursor.pos.line + 1] then -- IF A LINE AFTER THE CURRENT ONE EXISTS THEN GO TO IT AND TO THE END OF IT
-        self:setCursorPos(#self.lines[self.cursor.pos.line + 1], self.cursor.pos.line + 1)
-    else -- IF A LINE AFTER THE CURRENT ONE DOESN'T EXISTS THEN CREATE AND GO TO IT
-        self:setCursorPos(1, self.cursor.pos.line + 1, true)
-    end
+    self:write(_string..'\n')
 end
 
 function Memo:clear()
@@ -1980,11 +2014,13 @@ function drawLoopOBJs()
         end
         local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
         for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
-            setMonitor(monitorName)
-            globalLoop.callbacks.onMonitorChange(monitorName)
-            for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
-                local obj = globalLoop.group[globalLoop.selectedGroup][i]
-                obj:draw()
+            if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
+                setMonitor(monitorName)
+                globalLoop.callbacks.onMonitorChange(monitorName)
+                for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
+                    local obj = globalLoop.group[globalLoop.selectedGroup][i]
+                    obj:draw()
+                end
             end
         end
         setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
@@ -2000,7 +2036,9 @@ function updateLoopOBJs(_x, _y, _event)
     assert(type(_x) == 'number', 'updateLoopOBJs: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'updateLoopOBJs: y must be a number, got '..type(_y))
     for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
-        obj:update(_x, _y, _event)
+        if obj:update(_x, _y, _event) then
+            break
+        end
     end
 end
 
