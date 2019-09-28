@@ -1,5 +1,5 @@
 
-ver = '1.9.0'
+ver = '1.9.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -432,20 +432,22 @@ function Header:setCallback(_event, _callback)
     end
 end
 
-function Header:update(_x, _y, _event)
+function Header:update(_x, _y, _event, _cantUpdate)
     assert(type(_x) == 'number', 'Header.update: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Header.update: y must be a number, got '..type(_y))
 
     if not self.hidden then
-        self.pos.x = math.floor((globalMonitorWidth - string.len(self.text) + 1) / 2) -- RECALC SCREEN CENTRE
-        local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
-        if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
-            -- IF THE HEADER WAS PRESSED CALL CALLBACK
-            self.callbacks.onPress(self, _event)
-            return true
-        else
-            self.callbacks.onFailedPress(self, _event)
-            return false
+        if not _cantUpdate then
+            self.pos.x = math.floor((globalMonitorWidth - string.len(self.text) + 1) / 2) -- RECALC SCREEN CENTRE
+            local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
+            if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
+                -- IF THE HEADER WAS PRESSED CALL CALLBACK
+                self.callbacks.onPress(self, _event)
+                return true
+            else
+                self.callbacks.onFailedPress(self, _event)
+                return false
+            end
         end
     end
     return false
@@ -537,19 +539,21 @@ function Label:setCallback(_event, _callback)
     end
 end
 
-function Label:update(_x, _y, _event)
+function Label:update(_x, _y, _event, _cantUpdate)
     assert(type(_x) == 'number', 'Label.update: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Label.update: y must be a number, got '..type(_y))
 
     if not self.hidden then
-        local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
-        if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
-            -- IF THE LABEL WAS PRESSED CALL CALLBACK
-            self.callbacks.onPress(self, _event)
-            return true
-        else
-            self.callbacks.onFailedPress(self, _event)
-            return false
+        if not _cantUpdate then
+            local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
+            if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
+                -- IF THE LABEL WAS PRESSED CALL CALLBACK
+                self.callbacks.onPress(self, _event)
+                return true
+            else
+                self.callbacks.onFailedPress(self, _event)
+                return false
+            end
         end
     end
     return false
@@ -672,19 +676,21 @@ function Button:setCallback(_event, _callback)
     end
 end
 
-function Button:update(_x, _y, _event)
+function Button:update(_x, _y, _event, _cantUpdate)
     assert(type(_x) == 'number', 'Button.update: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Button.update: y must be a number, got '..type(_y))
 
     if not self.hidden then
-        if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
-            -- IF THE BUTTON WAS PRESSED CALL CALLBACK
-            self.state = not self.state
-            self.callbacks.onPress(self, _event)
-            return true
-        else
-            self.callbacks.onFailedPress(self, _event)
-            return false
+        if not _cantUpdate then
+            if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
+                -- IF THE BUTTON WAS PRESSED CALL CALLBACK
+                self.state = not self.state
+                self.callbacks.onPress(self, _event)
+                return true
+            else
+                self.callbacks.onFailedPress(self, _event)
+                return false
+            end
         end
     end
     return false
@@ -825,26 +831,28 @@ function Menu:set(_table, _fillMenu)
     end
 end
 
-function Menu:update(_x, _y, _event)
+function Menu:update(_x, _y, _event, _cantUpdate)
     assert(type(_x) == 'number', 'Menu.update: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Menu.update: y must be a number, got '..type(_y))
 
     if not self.hidden then
-        if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
-            -- IF THE MENU WAS PRESSED CALL CALLBACK
-            self.callbacks.onPress(self, _event)
-            for key, obj in pairs(self.objs) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
-                if obj:update(_x, _y, _event) then
-                    self.callbacks.onButtonPress(self, obj, _event)
-                    break
-                else
-                    self.callbacks.onFailedButtonPress(self, obj, _event)
+        if not _cantUpdate then
+            if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
+                -- IF THE MENU WAS PRESSED CALL CALLBACK
+                self.callbacks.onPress(self, _event)
+                for key, obj in pairs(self.objs) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
+                    if obj:update(_x, _y, _event) then
+                        self.callbacks.onButtonPress(self, obj, _event)
+                        break
+                    else
+                        self.callbacks.onFailedButtonPress(self, obj, _event)
+                    end
                 end
+                return true
+            else
+                self.callbacks.onFailedPress(self, _event)
+                return false
             end
-            return true
-        else
-            self.callbacks.onFailedPress(self, _event)
-            return false
         end
     end
     return false
@@ -1070,18 +1078,20 @@ function PercentageBar:setValue(_value)
     self.value.percentage = math.floor(((self.value.current - self.value.min) / (self.value.max - self.value.min)) * 100)
 end
 
-function PercentageBar:update(_x, _y, _event)
+function PercentageBar:update(_x, _y, _event, _cantUpdate)
     assert(type(_x) == 'number', 'PercentageBar.update: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'PercentageBar.update: y must be a number, got '..type(_y))
 
     if not self.hidden then
-        if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
-            -- IF THE PERCENTAGEBAR WAS PRESSED CALL CALLBACK
-            self.callbacks.onPress(self, _event)
-            return true
-        else
-            self.callbacks.onFailedPress(self, _event)
-            return false
+        if not _cantUpdate then
+            if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
+                -- IF THE PERCENTAGEBAR WAS PRESSED CALL CALLBACK
+                self.callbacks.onPress(self, _event)
+                return true
+            else
+                self.callbacks.onFailedPress(self, _event)
+                return false
+            end
         end
     end
     return false
@@ -1664,12 +1674,12 @@ function Memo:edit(_event)
 end
 
 
-function Memo:update(_x, _y, _event)
+function Memo:update(_x, _y, _event, _cantUpdate)
     assert(type(_x) == 'number', 'Memo.update: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Memo.update: y must be a number, got '..type(_y))
 
     if not self.hidden then
-        if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
+        if not _cantUpdate and checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
             -- IF THE MEMO WAS PRESSED CALL CALLBACK
             self.callbacks.onPress(self, _event)
             self.active = true
@@ -2035,9 +2045,10 @@ end
 function updateLoopOBJs(_x, _y, _event)
     assert(type(_x) == 'number', 'updateLoopOBJs: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'updateLoopOBJs: y must be a number, got '..type(_y))
+    local _objUpdated = false
     for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
-        if obj:update(_x, _y, _event) then
-            break
+        if obj:update(_x, _y, _event, _objUpdated) then
+            _objUpdated = true
         end
     end
 end
