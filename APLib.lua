@@ -1,5 +1,5 @@
 
-ver = '1.9.1'
+ver = '1.10.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -200,6 +200,7 @@ function bClearMonitorGroup()
 end
 
 function setMonitor(_monitorName)
+    _monitorName = tostring(_monitorName)
     globalCallbacks.onSetMonitor(globalMonitor, globalMonitorName, globalMonitorWidth, globalMonitorHeight)
     if _monitorName == 'term' then
         globalMonitor = term --SET GLOBALMONITOR TO MONITOR
@@ -234,6 +235,190 @@ function resetMonitorGroup()
     globalMonitorGroup.list = {}
 end
 
+APLWD = {
+    enabled = false,
+    enableBroadcastOnLoopClock = false,
+    protocol = 'APLWD',
+    senderName = 'SendeR',
+    receiverName = 'ReceiveR',
+    isReceiver = true,
+    myName = '',
+    senderID = '',
+    modemName = '',
+    cache = {}
+}
+
+APLWD.enable = function (_bool)
+    assert(type(_bool) == 'boolean', 'APLWD.enable: bool must be a boolean, got '..type(_bool))
+    APLWD.enabled = _bool
+end
+
+APLWD.enableBroadcastOnLoopClock = function (_bool)
+    assert(type(_bool) == 'boolean', 'APLWD.enable: bool must be a boolean, got '..type(_bool))
+    APLWD.enableBroadcastOnLoopClock = _bool
+end
+
+APLWD.host = function (_modemName, _hostname)
+    if APLWD.enabled then
+        _modemName = tostring(_modemName)
+
+        if _hostname then -- IF HOSTNAME ISN'T SPECIFIED SET IT TO COMPUTER'S ID
+            _hostname = tostring(_hostname)
+        else
+            _hostname = tostring(os.getComputerID())
+        end
+        
+        -- MAKE SURE THAT MODEMNAME IS A MODEM
+        assert(tostring(peripheral.getType(_modemName)) == 'modem', 'APLWD.host: modemName must be a modem, got '..tostring(peripheral.getType(_modemName)))
+
+        rednet.open(_modemName) -- OPEN REDNET CONNECTION
+        if rednet.lookup(APLWD.protocol, APLWD.senderName.._hostname) then -- IF HOSTNAME WAS ALREADY TAKEN THEN ERROR
+            rednet.close(_modemName)
+            error("APLWD.host: There's already someone connected with hostname: ".._hostname)
+        end
+        rednet.host(APLWD.protocol, APLWD.senderName.._hostname) -- HOST APLWD ON HOSTNAME
+
+        APLWD.isReceiver = false
+        APLWD.myName = APLWD.senderName.._hostname
+        APLWD.modemName = _modemName
+    end
+end
+
+APLWD.connect = function (_modemName, _senderName, _hostname)
+    if APLWD.enabled then
+        _modemName = tostring(_modemName)
+
+        if _hostname then -- IF HOSTNAME ISN'T SPECIFIED SET IT TO COMPUTER'S ID
+            _hostname = tostring(_hostname)
+        else
+            _hostname = tostring(os.getComputerID())
+        end
+
+        _senderName = tostring(_senderName)
+
+        -- MAKE SURE THAT MODEMNAME IS A MODEM
+        assert(tostring(peripheral.getType(_modemName)) == 'modem', 'APLWD.connect: modemName must be a modem, got '..tostring(peripheral.getType(_modemName)))
+
+        rednet.open(_modemName) -- OPEN REDNET CONNECTION
+        if rednet.lookup(APLWD.protocol, APLWD.receiverName.._hostname) then -- IF HOSTNAME WAS ALREADY TAKEN THEN ERROR
+            rednet.close(_modemName)
+            error("APLWD.connect: There's already someone connected with hostname: ".._hostname)
+        end
+        
+        -- GET ID OF THE SENDER
+        local _senderID = rednet.lookup(APLWD.protocol, APLWD.senderName.._senderName)
+        if not _senderID then -- IF NO SENDER WAS FOUND THEN ERROR
+            rednet.close(_modemName)
+            error("APLWD.connect: Didn't find any sender with name: ".._senderName)
+        end
+        
+        rednet.host(APLWD.protocol, APLWD.receiverName.._hostname) -- HOST APLWD ON HOSTNAME
+        
+        APLWD.isReceiver = true
+        APLWD.myName = APLWD.receiverName.._hostname
+        APLWD.senderID = _senderID
+        APLWD.modemName = _modemName
+    end
+end
+
+APLWD.close = function ()
+    if not APLWD.isReceiver then -- IF IS A SENDER THAN BROADCAST TO RECEIVERS THAT SENDER DISCONNECTED
+        rednet.broadcast('disconnected', APLWD.protocol)
+    end
+    rednet.unhost('APLWD', APLWD.myName) -- UNHOST COMPUTER
+    rednet.close(APLWD.modemName) -- CLOSE REDNET CONNECTION
+    
+    APLWD.enable(false)
+    APLWD.clearCache() -- CLEAR CACHE AND RESET EVERY SETTING
+    APLWD.isReceiver = true
+    APLWD.myName = ''
+    APLWD.senderID = ''
+    APLWD.modemName = ''
+end
+
+APLWD.broadcastCache = function ()
+    if APLWD.enabled then
+        local _rednetConnection = rednet.isOpen()
+        assert(_rednetConnection, 'APLWD.broadcastCache: rednet connection must be opened first, connection '..tostring(_rednetConnection))
+
+        rednet.broadcast(APLWD.cache, APLWD.protocol)
+        APLWD.clearCache()
+    end
+end
+
+APLWD.receiveCache = function (_timeout)
+    if APLWD.enabled then
+        local _rednetConnection = rednet.isOpen()
+        assert(_rednetConnection, 'APLWD.receiveCache: rednet connection must be opened first, connection '..tostring(_rednetConnection))
+
+        local _senderID, _message, _protocol = rednet.receive(APLWD.protocol, tonumber(_timeout))
+        if type(_message) == 'table' then
+            if _senderID == APLWD.senderID then
+                APLWD.cache = _message
+                return true
+            end
+        elseif _message == 'disconnected' then
+            APLWD.close()
+        end
+        return false
+    end
+end
+
+APLWD.drawCache = function ()
+    if APLWD.enabled then
+        local function drawCache()
+            for key, value in pairs(APLWD.cache) do
+                if value.type == 'point' then
+                        
+                    local oldColor = globalColor
+                    
+                    setColor(value.color)
+                    point(value.pos.x, value.pos.y)
+
+                    setColor(oldColor)
+
+                elseif value.type == 'text' then
+
+                    local oldTextColor = globalTextColor
+                    local oldBackgroundTextColor = globalBackgroundTextColor
+
+                    setTextColor(value.colors.textColor)
+                    setBackgroundTextColor(value.colors.backgroundTextColor)
+                    text(value.pos.x, value.pos.y, value.text)
+
+                    setTextColor(oldTextColor)
+                    setBackgroundTextColor(oldBackgroundTextColor)
+
+                elseif value.type == 'background' then
+                    setBackground(value.color)
+                end
+            end
+        end
+
+        if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
+            globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
+            drawCache()
+            local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
+            for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
+                if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
+                    setMonitor(monitorName)
+                    globalLoop.callbacks.onMonitorChange(monitorName)
+                    drawCache()
+                end
+            end
+            setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
+        else
+            drawCache()
+        end
+
+        APLWD.clearCache()
+    end
+end
+
+APLWD.clearCache = function ()
+    APLWD.cache = {}
+end
+
 function setColor(_color)
     assert(type(_color) == 'number', 'setColor: color must be a number, got '..type(_color))
     globalColor = _color --SET GLOBALCOLOR TO COLOR
@@ -253,6 +438,15 @@ function setBackground(_color)
     assert(type(_color) == 'number', 'setBackgroundColor: color must be a number, got '..type(_color))
     globalMonitor.setBackgroundColor(_color) --SET BG COLOR TO COLOR
     bClear() --CLEARS MONITOR
+    if not APLWD.isReceiver then
+        table.insert(
+            APLWD.cache,
+            {
+                type = 'background',
+                color = _color
+            }
+        )
+    end
 end
 
 function setRectangleType(_type)
@@ -280,6 +474,23 @@ function text(_x, _y, _text)
     globalMonitor.setTextColor(oldTextColor)
     globalMonitor.setBackgroundColor(oldBackgroundColor)
     
+    if not APLWD.isReceiver then
+        table.insert(
+            APLWD.cache,
+            {
+                type = 'text',
+                text = _text,
+                pos = {
+                    x = _x,
+                    y = _y
+                },
+                colors = {
+                    textColor = globalTextColor,
+                    backgroundTextColor = globalBackgroundTextColor
+                }
+            }
+        )
+    end
 end
 
 function point(_x, _y)
@@ -292,6 +503,20 @@ function point(_x, _y)
     globalMonitor.write(' ') --DRAWS THE POINT
     globalMonitor.setCursorPos(oldCursorPosX, oldCursorPosY) --RESTORES OLD CURSOR POS
     globalMonitor.setBackgroundColor(oldBackgroundColor) --RESTORES OLD COLOR
+    
+    if not APLWD.isReceiver then
+        table.insert(
+            APLWD.cache,
+            {
+                type = 'point',
+                pos = {
+                    x = _x,
+                    y = _y
+                },
+                color = globalColor
+            }
+        )
+    end
 end
 
 function rectangle(_x1, _y1, _x2, _y2)
@@ -1992,6 +2217,10 @@ function loop()
                 drawLoopOBJs()
             else
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
+            end
+
+            if APLWD.enableBroadcastOnLoopClock then
+                APLWD.broadcastCache()
             end
         end
 
