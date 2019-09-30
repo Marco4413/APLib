@@ -1,5 +1,5 @@
 
-ver = '1.10.0'
+ver = '1.11.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -21,6 +21,8 @@ globalLoop = {
     drawOnClock = true,
     clockSpeed = 0.5,
     timerSpeed = 0.1,
+    APLWDBroadcastOnClock = false,
+    APLWDClearCacheOnDraw = true,
     callbacks = {
         onInit = function() end,
         onClock = function() end,
@@ -56,6 +58,9 @@ event = {
         onInfo = 1,
         onBClear = 2,
         onSetMonitor = 3
+    },
+    clock = {
+        onClock = 1
     },
     header = {
         onDraw = 1,
@@ -237,8 +242,7 @@ end
 
 APLWD = {
     enabled = false,
-    enableBroadcastOnLoopClock = false,
-    protocol = 'APLWD',
+    protocol = 'APLWD-'..ver,
     senderName = 'SendeR',
     receiverName = 'ReceiveR',
     isReceiver = true,
@@ -254,8 +258,13 @@ APLWD.enable = function (_bool)
 end
 
 APLWD.enableBroadcastOnLoopClock = function (_bool)
-    assert(type(_bool) == 'boolean', 'APLWD.enable: bool must be a boolean, got '..type(_bool))
-    APLWD.enableBroadcastOnLoopClock = _bool
+    assert(type(_bool) == 'boolean', 'APLWD.enableBroadcastOnLoopClock: bool must be a boolean, got '..type(_bool))
+    globalLoop.APLWDBroadcastOnClock = _bool
+end
+
+APLWD.enableClearCacheOnLoopDraw = function (_bool)
+    assert(type(_bool) == 'boolean', 'APLWD.enableClearCacheOnLoopDraw: bool must be a boolean, got '..type(_bool))
+    globalLoop.APLWDClearCacheOnDraw = _bool
 end
 
 APLWD.host = function (_modemName, _hostname)
@@ -322,18 +331,20 @@ APLWD.connect = function (_modemName, _senderName, _hostname)
 end
 
 APLWD.close = function ()
-    if not APLWD.isReceiver then -- IF IS A SENDER THAN BROADCAST TO RECEIVERS THAT SENDER DISCONNECTED
-        rednet.broadcast('disconnected', APLWD.protocol)
+    if APLWD.modemName ~= '' then
+        if not APLWD.isReceiver then -- IF IS A SENDER THAN BROADCAST TO RECEIVERS THAT SENDER DISCONNECTED
+            rednet.broadcast('disconnected', APLWD.protocol)
+        end
+        rednet.unhost(APLWD.protocol, APLWD.myName) -- UNHOST COMPUTER
+        rednet.close(APLWD.modemName) -- CLOSE REDNET CONNECTION
+        
+        APLWD.enable(false)
+        APLWD.clearCache() -- CLEAR CACHE AND RESET EVERY SETTING
+        APLWD.isReceiver = true
+        APLWD.myName = ''
+        APLWD.senderID = ''
+        APLWD.modemName = ''
     end
-    rednet.unhost('APLWD', APLWD.myName) -- UNHOST COMPUTER
-    rednet.close(APLWD.modemName) -- CLOSE REDNET CONNECTION
-    
-    APLWD.enable(false)
-    APLWD.clearCache() -- CLEAR CACHE AND RESET EVERY SETTING
-    APLWD.isReceiver = true
-    APLWD.myName = ''
-    APLWD.senderID = ''
-    APLWD.modemName = ''
 end
 
 APLWD.broadcastCache = function ()
@@ -359,6 +370,7 @@ APLWD.receiveCache = function (_timeout)
             end
         elseif _message == 'disconnected' then
             APLWD.close()
+            return 'disconnected'
         end
         return false
     end
@@ -577,6 +589,49 @@ function checkAreaPress(_x1, _y1, _x2, _y2, _xPressed, _yPressed)
     return true -- RETURN IF IT WAS PRESSED
 
 end
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
+Clock = {}
+
+function Clock.new(_interval)
+
+    assert(type(_interval) == 'number', 'Clock.new: interval must be a number, got '..type(_y))
+
+    --CREATE CLOCK
+    _newClock = {
+        clock = os.clock(),
+        interval = _interval,
+        callbacks = {
+            onClock = function() end
+        }
+    }
+    setmetatable(_newClock, Clock) --SET CLOCK METATABLE
+    return _newClock
+end
+
+function Clock:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'Clock.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onClock = _callback
+    end
+end
+
+function Clock:draw() end
+
+function Clock:update() return false; end
+
+function Clock:tick(_event)
+    -- CLOCK
+    if os.clock() >= self.clock + self.interval then
+        self.clock = os.clock()
+        self.callbacks.onClock(self, _event)
+        return true
+    end
+    return false
+end
+
+Clock.__index = Clock
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
@@ -2210,6 +2265,10 @@ function loop()
             Clock = os.clock()
 
             if globalLoop.drawOnClock then -- CLOCK DRAW
+                if APLWD.enabled and globalLoop.APLWDClearCacheOnDraw then
+                    APLWD.clearCache()
+                end
+
                 if globalLoop.autoClear then
                     bClear()
                 end
@@ -2219,7 +2278,7 @@ function loop()
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
             end
 
-            if APLWD.enableBroadcastOnLoopClock then
+            if APLWD.enabled and globalLoop.APLWDBroadcastOnClock then
                 APLWD.broadcastCache()
             end
         end
@@ -2231,6 +2290,10 @@ function loop()
 
         --EVENT DRAW
         if not globalLoop.drawOnClock then -- NON CLOCK DRAW
+            if APLWD.enabled and globalLoop.APLWDClearCacheOnDraw then
+                APLWD.clearCache()
+            end
+
             if globalLoop.autoClear then
                 bClear()
             end
