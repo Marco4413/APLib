@@ -1,5 +1,5 @@
 
-ver = '1.12.0'
+ver = '1.12.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -2424,35 +2424,33 @@ end
 
 local tArgs = { ... } -- GETTING TERMINAL ARGS
 if table.maxn(tArgs) > 0 then
-    if tArgs[1] then
-        tArgs[1] = string.lower(tArgs[1]) -- GETTING OPTION
-        if tArgs[1] == 'ver' then -- OPTION LIB
-            print('Lib version: '..ver)
-        elseif tArgs[1] == 'setup' then -- OPTION SETUP
-            if shell then -- CHECKING IF SHELL API IS AVAILABLE
-                local _LibPath = '/'..shell.getRunningProgram()
-                OSSettings.set('APLibPath', _LibPath)
-                print('Setup completed!\nAPLibPath: '..tostring(settings.get('APLibPath')))
-                sleep(2)
-                os.reboot() -- REBOOTING AFTER SETUP
+    tArgs[1] = string.lower(tArgs[1]) -- GETTING OPTION
+    if tArgs[1] == 'ver' then -- OPTION LIB
+        print('Lib version: '..ver)
+    elseif tArgs[1] == 'setup' then -- OPTION SETUP
+        if shell then -- CHECKING IF SHELL API IS AVAILABLE
+            local _LibPath = '/'..shell.getRunningProgram()
+            OSSettings.set('APLibPath', _LibPath)
+            print('Setup completed!\nAPLibPath: '..tostring(settings.get('APLibPath')))
+            sleep(2)
+            os.reboot() -- REBOOTING AFTER SETUP
+        else
+            error("Setup failed, shell API not available!")
+        end
+    elseif tArgs[1] == 'create' then -- OPTION CREATE
+        if tArgs[2] then
+            local _file = fs.open('/'..tArgs[2], 'w') -- OPEN FILE WITH NAME tArgs[1]
+            if _file then -- IF FILE WAS OPENED THEN
+                -- STORE TEXT IN A VARIABLE
+                local _text = "\n-- //AUTO-GENERATED-CODE//\nassert(  -- check if setup was done before, if not return with an error\n    type(settings.get('APLibPath')) == 'string',\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."        settings.get('APLibPath')\n"..'    ).."'.."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"..'"\n)\n\n'.."assert( -- check if API is still there, if not return with an error\n    fs.exists(settings.get('APLibPath')),\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."    	settings.get('APLibPath')\n    ).."..'"'.."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"..'"\n)\n\n'.."os.loadAPI(settings.get('APLibPath')) -- load API with CraftOS's built-in feature\n-- //--//\n\n"
+                _file.write(_text) -- WRITE TEXT IN THE FILE
+                _file.close() -- CLOSE THE FILE
+                print('File succesfully created!')
             else
-                error("Setup failed, shell API not available!")
+                print("Couldn't create file.")
             end
-        elseif tArgs[1] == 'create' then -- OPTION CREATE
-            if tArgs[2] then
-                local _file = fs.open('/'..tostring(tArgs[2]), 'w') -- OPEN FILE WITH NAME tArgs[1]
-                if _file then -- IF FILE WAS OPENED THEN
-                    -- STORE TEXT IN A VARIABLE
-                    local _text = "\n-- //AUTO-GENERATED-CODE//\nassert(  -- check if setup was done before, if not return with an error\n    type(settings.get('APLibPath')) == 'string',\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."        settings.get('APLibPath')\n"..'    ).."'.."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"..'"\n)\n\n'.."assert( -- check if API is still there, if not return with an error\n    fs.exists(settings.get('APLibPath')),\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."    	settings.get('APLibPath')\n    ).."..'"'.."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"..'"\n)\n\n'.."os.loadAPI(settings.get('APLibPath')) -- load API with CraftOS's built-in feature\n-- //--//\n\n"
-                    _file.write(_text) -- WRITE TEXT IN THE FILE
-                    _file.close() -- CLOSE THE FILE
-                    print('File succesfully created!')
-                else
-                    print("Couldn't create file.")
-                end
-            else
-                print('You must specify the name of the file you want to create.')
-            end
+        else
+            print('You must specify the name of the file you want to create.')
         end
     end
 end

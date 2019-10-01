@@ -26,10 +26,10 @@ if tArgs[1] == '/help' then
 end
 
 APLib.APLWD.enable(true)
-APLib.APLWD.connect(tostring(tArgs[1]), tostring(tArgs[2]))
+APLib.APLWD.connect(tArgs[1], tArgs[2])
 
 if tArgs[3] then
-    APLib.setMonitor(tostring(tArgs[3]))
+    APLib.setMonitor(tArgs[3])
 end
 
 while true do
