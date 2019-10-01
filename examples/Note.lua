@@ -492,6 +492,7 @@ APLib.setMonitor('term')
 APLib.setLoopClockSpeed(0.5)
 APLib.drawOnLoopClock()
 
+APLib.globalLoop.FPS.counter.offsets.x = -1
 APLib.enableLoopFPSCounter(true)
 
 APLib.addLoopGroup('main', objs)

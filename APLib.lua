@@ -1,5 +1,5 @@
 
-ver = '1.12.2'
+ver = '1.12.3'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -28,6 +28,10 @@ globalLoop = {
         value = 0,
         counter = {
             enabled = false,
+            offsets = {
+                x = 0,
+                y = 0
+            },
             colors = {
                 textColor = globalTextColor,
                 backgroundTextColor = nil
@@ -2386,9 +2390,8 @@ function drawLoopFPSCounter()
     end
 
     --DRAWING FPS COUNTER
-    local width, height = globalMonitor.getSize()
     local _text = tostring(globalLoop.FPS.value)..'FPS'
-    text(width - string.len(_text) + 1, height, _text)
+    text(globalMonitorWidth - string.len(_text) + 1 + globalLoop.FPS.counter.offsets.x, globalMonitorHeight + globalLoop.FPS.counter.offsets.y, _text)
     
     --REVERTING ALL CHANGES MADE BEFORE
     setTextColor(oldTextColor)
