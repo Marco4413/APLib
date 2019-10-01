@@ -98,22 +98,6 @@ mFSFiles.cursor.text = '>'
 mFSDirs.cursor.colors.textColor = colors.red
 mFSFiles.cursor.colors.textColor = colors.red
 
-function memoActivate(self, _event)
-    self.cursor.blink.enabled = true
-    self.cursor.visible = true
-end
-
-mFSDirs:setCallback(APLib.event.memo.onActivated, memoActivate)
-mFSFiles:setCallback(APLib.event.memo.onActivated, memoActivate)
-
-function memoDeactivate(self, _event)
-    self.cursor.blink.enabled = false
-    self.cursor.visible = false
-end
-
-mFSDirs:setCallback(APLib.event.memo.onDeactivated, memoDeactivate)
-mFSFiles:setCallback(APLib.event.memo.onDeactivated, memoDeactivate)
-
 mFSReset()
 
 mFSDirs:setCallback(

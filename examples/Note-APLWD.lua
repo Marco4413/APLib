@@ -51,10 +51,11 @@ cAPLWDBroadcast:setCallback(
 local mMemo = APLib.Memo.new(5, 2, 51, 18, nil, nil, colors.black)
 mMemo:limits(true)
 mMemo:setCursorLimits(nil, 9999)
-mMemo:optimize(true)
+
+--mMemo:enableSelfLoop(true)
 
 local mbmInput = APLib.Memo.new(0, 0, 0, 0, nil, shapeColor, shapeColor)
-mbmInput:optimize(true)
+mbmInput:enableSelfLoop(true)
 
 -- CREATING BUTTONS
 local mbFile = APLib.Button.new(1, 1, 4, 1, 'File', nil, nil, colors.lightGray, colors.gray)
@@ -504,6 +505,9 @@ APLib.setMonitor('term')
 
 APLib.setLoopClockSpeed(0.1)
 APLib.drawOnLoopClock()
+
+APLib.enableLoopFPSCounter(true)
+
 APLib.addLoopGroup('main', objs)
 APLib.setLoopGroup('main')
 APLib.loop()

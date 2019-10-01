@@ -1,5 +1,5 @@
 
-ver = '1.11.0'
+ver = '1.12.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -21,8 +21,19 @@ globalLoop = {
     drawOnClock = true,
     clockSpeed = 0.5,
     timerSpeed = 0.1,
+    clock = 0,
     APLWDBroadcastOnClock = false,
     APLWDClearCacheOnDraw = true,
+    FPS = {
+        value = 0,
+        counter = {
+            enabled = false,
+            colors = {
+                textColor = globalTextColor,
+                backgroundTextColor = nil
+            }
+        }
+    },
     callbacks = {
         onInit = function() end,
         onClock = function() end,
@@ -689,7 +700,6 @@ function Header:draw()
         else
             setBackgroundTextColor(backgroundColor)
         end
-        setTextColor(self.colors.textColor)
 
         --DRAWING HEADER
         self.pos.x = math.floor((globalMonitorWidth - string.len(self.text) + 1) / 2)
@@ -797,7 +807,6 @@ function Label:draw()
         else
             setBackgroundTextColor(backgroundColor)
         end
-        setTextColor(self.colors.textColor)
 
         --DRAWING LABEL
         text(self.pos.x, self.pos.y, self.text)
@@ -1419,7 +1428,7 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
     _newMemo = {
         active = false,
         hidden = false,
-        optimized = false,
+        selfLoop = false,
         lines = {},
         pos = {
             x1 = _x1,
@@ -1440,6 +1449,7 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
             },
             visible = false,
             blink = {
+                automatic = true,
                 enabled = false,
                 clock = os.clock(),
                 speed = 0.5
@@ -1650,6 +1660,7 @@ function Memo:edit(_event)
     if not self.hidden then -- IF MEMO ISN'T HIDDEN
 
         local function edit(event)
+            if not event then return false; end
             if not self.lines[1] then self:setCursorPos(1, 1, true); end -- IF FIRST LINE IS NULL THEN MAKE IT AN EMPTY STRING AND SELECT IT
             self.callbacks.onEdit(self, event) -- CALL ON EDIT EVENT
 
@@ -1926,7 +1937,7 @@ function Memo:edit(_event)
             return true
         end
 
-        if not self.optimized then
+        if not self.selfLoop then
             edit(_event)
         else
             self.active = true
@@ -1965,7 +1976,7 @@ function Memo:update(_x, _y, _event, _cantUpdate)
             self.active = true
             self.callbacks.onActivated(self, _event)
 
-            if self.optimized then
+            if self.selfLoop then
                 self.cursor.blink.enabled = true
                 self.cursor.visible = true
                 self:edit(_event)
@@ -1973,6 +1984,10 @@ function Memo:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onDeactivated(self, _event)
                 self.cursor.blink.enabled = false
                 self.cursor.visible = false
+
+            elseif self.editSettings.editable and self.cursor.blink.automatic then
+                self.cursor.blink.enabled = true
+                self.cursor.visible = true
             end
 
             return true
@@ -1981,6 +1996,11 @@ function Memo:update(_x, _y, _event, _cantUpdate)
             if self.active then
                 self.active = false
                 self.callbacks.onDeactivated(self, _event)
+
+                if self.editSettings.editable and self.cursor.blink.automatic then
+                    self.cursor.blink.enabled = false
+                    self.cursor.visible = false
+                end
             end
             return false
         end
@@ -1994,7 +2014,7 @@ end
 
 function Memo:tick(_event)
     if not self.hidden then
-        if not self.optimized then
+        if not self.selfLoop then
             if self.cursor.blink.enabled then
                 if os.clock() >= self.cursor.blink.clock + self.cursor.blink.speed then -- BLINK :)
                     self.cursor.blink.clock = os.clock() -- UPDATE BLINKCLOCK
@@ -2008,7 +2028,7 @@ end
 
 function Memo:key(_event)
     if not self.hidden then
-        if not self.optimized then
+        if not self.selfLoop then
             if self.active then
                 self:edit(_event)
             end
@@ -2018,7 +2038,7 @@ end
 
 function Memo:char(_event)
     if not self.hidden then
-        if not self.optimized then
+        if not self.selfLoop then
             if self.active then
                 self:edit(_event)
             end
@@ -2086,9 +2106,9 @@ function Memo:clear()
     self.lines = {}
 end
 
-function Memo:optimize(_bool)
-    assert(type(_bool) == 'boolean', 'Memo.optimized: bool must be a boolean, got '..type(_bool))
-    self.optimized = _bool
+function Memo:enableSelfLoop(_bool)
+    assert(type(_bool) == 'boolean', 'Memo.enableSelfLoop: bool must be a boolean, got '..type(_bool))
+    self.selfLoop = _bool
 end
 
 function Memo:limits(_bool)
@@ -2116,6 +2136,11 @@ end
 
 function drawOnLoopEvent()
     globalLoop.drawOnClock = false
+end
+
+function enableLoopFPSCounter(_bool)
+    assert(type(_bool) == 'boolean', 'enableLoopFPSCounter: bool must be a boolean, got '..type(_bool))
+    globalLoop.FPS.counter.enabled = _bool
 end
 
 function setLoopClockSpeed(_sec)
@@ -2163,6 +2188,12 @@ function setLoopGroup(_groupName)
 end
 
 function resetLoopSettings()
+    
+    globalLoop.APLWDBroadcastOnClock = false
+    globalLoop.APLWDClearCacheOnDraw = true
+    globalLoop.FPS.value = 0
+    globalLoop.FPS.counter.enabled = false
+
     globalLoop.callbacks.onInit = function() end
     globalLoop.callbacks.onEvent = function() end -- CLEARS LOOP CALLBACKS
     globalLoop.callbacks.onClock = function() end
@@ -2211,20 +2242,32 @@ function loop()
             end
         end
     end
-
+    
     globalLoop.enabled = true -- ACTIVATE LOOP
 
     if globalLoop.autoClear then
         bClear()
     end
-
+    
     updateGlobalLoopEvents()
-
+    
     globalLoop.callbacks.onInit()
     drawLoopOBJs()
-
-    local Clock = os.clock()
-
+    
+    -- CREATE FPS CLOCK
+    local FPSClock = Clock.new(1)
+    FPSClock.FPS = 0
+    FPSClock:setCallback(
+        event.clock.onClock,
+        function (self, event)
+            globalLoop.FPS.value = self.FPS
+            self.FPS = 0
+        end
+    )
+    
+    -- SET LOOP CLOCK
+    local loopClock = os.clock()
+    
     while globalLoop.enabled do
 
         if globalLoop.wasGroupChanged then
@@ -2260,9 +2303,10 @@ function loop()
         end
 
         -- CLOCK
-        if os.clock() >= Clock + globalLoop.clockSpeed then
+        globalLoop.clock = os.clock()
+        if globalLoop.clock >= loopClock + globalLoop.clockSpeed then
 
-            Clock = os.clock()
+            loopClock = os.clock()
 
             if globalLoop.drawOnClock then -- CLOCK DRAW
                 if APLWD.enabled and globalLoop.APLWDClearCacheOnDraw then
@@ -2303,8 +2347,41 @@ function loop()
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
         end
 
+        -- FPS draw counter
+        if globalLoop.FPS.counter.enabled then
+            drawLoopFPSCounter()
+        end
+        -- FPS calc
+        FPSClock.FPS = FPSClock.FPS + 1
+        FPSClock:tick('calcFPS')
+        
         os.cancelTimer(Timer) -- DELETE TIMER
     end
+end
+
+function drawLoopFPSCounter()
+
+    local oldTextColor = globalTextColor
+    local oldBackgroundTextColor = globalBackgroundTextColor
+    
+    local backgroundColor = globalMonitor.getBackgroundColor()
+    
+    --SETTING THINGS TO FPS COUNTER SETTINGS
+    setTextColor(globalLoop.FPS.counter.colors.textColor)
+    if globalLoop.FPS.counter.colors.backgroundTextColor then
+        setBackgroundTextColor(globalLoop.FPS.counter.colors.backgroundTextColor)
+    else
+        setBackgroundTextColor(backgroundColor)
+    end
+
+    --DRAWING FPS COUNTER
+    local width, height = globalMonitor.getSize()
+    local _text = tostring(globalLoop.FPS.value)..'FPS'
+    text(width - string.len(_text) + 1, height, _text)
+    
+    --REVERTING ALL CHANGES MADE BEFORE
+    setTextColor(oldTextColor)
+    setBackgroundTextColor(oldBackgroundTextColor)
 end
 
 function drawLoopOBJs()
