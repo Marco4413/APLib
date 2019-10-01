@@ -489,7 +489,7 @@ APLib.setLoopCallback(
 
 APLib.setMonitor('term')
 
-APLib.setLoopClockSpeed(0.1)
+APLib.setLoopClockSpeed(0.5)
 APLib.drawOnLoopClock()
 
 APLib.enableLoopFPSCounter(true)

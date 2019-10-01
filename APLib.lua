@@ -1,5 +1,5 @@
 
-ver = '1.12.1'
+ver = '1.12.2'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -2318,6 +2318,14 @@ function loop()
                 end
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
                 drawLoopOBJs()
+                
+                -- FPS draw counter
+                if globalLoop.FPS.counter.enabled then
+                    drawLoopFPSCounter()
+                end
+
+                -- add 1 Frame
+                FPSClock.FPS = FPSClock.FPS + 1
             else
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
             end
@@ -2331,6 +2339,9 @@ function loop()
         for _, obj in pairs(globalLoop.events.tick) do
             obj:tick(event)
         end
+        
+        -- FPS calc
+        FPSClock:tick('calcFPS')
 
         --EVENT DRAW
         if not globalLoop.drawOnClock then -- NON CLOCK DRAW
@@ -2343,17 +2354,17 @@ function loop()
             end
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
             drawLoopOBJs()
+            
+            -- FPS draw counter
+            if globalLoop.FPS.counter.enabled then
+                drawLoopFPSCounter()
+            end
+
+            -- add 1 Frame
+            FPSClock.FPS = FPSClock.FPS + 1
         else
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
         end
-
-        -- FPS draw counter
-        if globalLoop.FPS.counter.enabled then
-            drawLoopFPSCounter()
-        end
-        -- FPS calc
-        FPSClock.FPS = FPSClock.FPS + 1
-        FPSClock:tick('calcFPS')
         
         os.cancelTimer(Timer) -- DELETE TIMER
     end
