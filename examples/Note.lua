@@ -206,26 +206,6 @@ local function RunNotes()
     CurrFile = oldCurrFile
 end
 
-local function drawBackgroundToAllScreens(_color)
-    if _color then
-        local libInfo = APLib.getInfo()
-
-        if libInfo.globalMonitorGroup.enabled then
-            libInfo.globalLoop.callbacks.onMonitorChange(monitorName)
-            APLib.setBackground(_color)
-            local oldMonitor = libInfo.globalMonitorName
-            for _, monitorName in pairs(libInfo.globalMonitorGroup.list) do
-                APLib.setMonitor(monitorName)
-                libInfo.globalLoop.callbacks.onMonitorChange(monitorName)
-                APLib.setBackground(_color)
-            end
-            APLib.setMonitor(oldMonitor)
-        else
-            APLib.setBackground(_color)
-        end
-    end
-end
-
 -- OBJs CALLBACKS
 
 --//MENU BUTTONS\\--
@@ -460,7 +440,7 @@ APLib.setLoopCallback(
     APLib.event.loop.onClock,
     function (event)
 
-        drawBackgroundToAllScreens(bgColor)
+        APLib.setBackgroundMonitorGroup(bgColor)
 
         APLib.setColor(bgColor)
         APLib.rectangle(lLines.pos.x, lLines.pos.y, lLines.pos.x + #lLines.text - 1, lLines.pos.y)
@@ -489,14 +469,14 @@ APLib.setLoopCallback(
 
 APLib.setMonitor('term')
 
-APLib.setLoopClockSpeed(0.5)
+APLib.setLoopClockSpeed(0.1)
 APLib.drawOnLoopClock()
 
-APLib.globalLoop.FPS.counter.offsets.x = -1
-APLib.enableLoopFPSCounter(true)
+APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.black
+APLib.drawLoopStats(true)
 
 APLib.addLoopGroup('main', objs)
 APLib.setLoopGroup('main')
 APLib.loop()
 
-drawBackgroundToAllScreens(colors.black)
+APLib.setBackgroundMonitorGroup(colors.black)

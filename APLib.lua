@@ -1,5 +1,5 @@
 
-ver = '1.12.3'
+ver = '1.13.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -24,19 +24,10 @@ globalLoop = {
     clock = 0,
     APLWDBroadcastOnClock = false,
     APLWDClearCacheOnDraw = true,
-    FPS = {
-        value = 0,
-        counter = {
-            enabled = false,
-            offsets = {
-                x = 0,
-                y = 0
-            },
-            colors = {
-                textColor = globalTextColor,
-                backgroundTextColor = nil
-            }
-        }
+    stats = {
+        automaticPos = true
+        -- FPS (LABEL)      These are created near the end
+        -- EPS (LABEL)
     },
     callbacks = {
         onInit = function() end,
@@ -141,11 +132,22 @@ function stringSplit(_string, _separator)
     return _words
 end
 
-function tableHas(_table, _value)
-    assert(type(_table) == 'table', 'tableHas: table must be a table, got '..type(_table))
+function tableHasKey(_table, _key)
+    assert(type(_table) == 'table', 'tableHasKey: table must be a table, got '..type(_table))
+    assert((type(_key) == 'string') or (type(_key) == 'number'), 'tableHasKey: key must be a string or a number, got '..type(_key))
+    for key, value in pairs(_table) do
+        if key == _key then
+            return true, value
+        end
+    end
+    return false
+end
+
+function tableHasValue(_table, _value)
+    assert(type(_table) == 'table', 'tableHasValue: table must be a table, got '..type(_table))
     for key, value in pairs(_table) do
         if value == _value then
-            return true
+            return true, key
         end
     end
     return false
@@ -257,6 +259,7 @@ end
 
 APLWD = {
     enabled = false,
+    cacheWritable = true,
     protocol = 'APLWD-'..ver,
     senderName = 'SendeR',
     receiverName = 'ReceiveR',
@@ -385,7 +388,7 @@ APLWD.receiveCache = function (_timeout)
             end
         elseif _message == 'disconnected' then
             APLWD.close()
-            return 'disconnected'
+            return false, 'disconnected'
         end
         return false
     end
@@ -465,7 +468,7 @@ function setBackground(_color)
     assert(type(_color) == 'number', 'setBackgroundColor: color must be a number, got '..type(_color))
     globalMonitor.setBackgroundColor(_color) --SET BG COLOR TO COLOR
     bClear() --CLEARS MONITOR
-    if not APLWD.isReceiver then
+    if not APLWD.isReceiver and APLWD.cacheWritable then
         table.insert(
             APLWD.cache,
             {
@@ -473,6 +476,30 @@ function setBackground(_color)
                 color = _color
             }
         )
+    end
+end
+
+function setBackgroundMonitorGroup(_color)
+    assert(type(_color) == 'number', 'setBackgroundMonitorGroup: color must be a number, got '..type(_color))
+    
+    if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
+        globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
+        
+        setBackground(_color)
+
+        if APLWD.enabled then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
+        local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
+        for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
+            if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
+                setMonitor(monitorName)
+                globalLoop.callbacks.onMonitorChange(monitorName)
+                setBackground(_color)
+            end
+        end
+        setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
+        if APLWD.enabled then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
+    else
+        setBackground(_color)
     end
 end
 
@@ -501,7 +528,7 @@ function text(_x, _y, _text)
     globalMonitor.setTextColor(oldTextColor)
     globalMonitor.setBackgroundColor(oldBackgroundColor)
     
-    if not APLWD.isReceiver then
+    if not APLWD.isReceiver and APLWD.cacheWritable then
         table.insert(
             APLWD.cache,
             {
@@ -531,7 +558,7 @@ function point(_x, _y)
     globalMonitor.setCursorPos(oldCursorPosX, oldCursorPosY) --RESTORES OLD CURSOR POS
     globalMonitor.setBackgroundColor(oldBackgroundColor) --RESTORES OLD COLOR
     
-    if not APLWD.isReceiver then
+    if not APLWD.isReceiver and APLWD.cacheWritable then
         table.insert(
             APLWD.cache,
             {
@@ -1685,13 +1712,13 @@ function Memo:edit(_event)
                 end
             end
 
-            if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
+            if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHasValue(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
                 if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, event[3], event[4]) then
                     return true -- IF PRESS OUTSIDE MEMO THEN RETURN TRUE, ELSE FALSE
                 else
                     return false
                 end
-            elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, 'term'))) then
+            elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHasValue(globalMonitorGroup.list, 'term'))) then
                 if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, event[3], event[4]) then
                     return true -- IF PRESS OUTSIDE MEMO THEN RETURN TRUE, ELSE FALSE
                 else
@@ -1937,7 +1964,6 @@ function Memo:edit(_event)
                     end
                 end
             end
-            self:draw()
             return true
         end
 
@@ -1953,6 +1979,7 @@ function Memo:edit(_event)
                 if not edit(_event) then
                     break
                 end
+                self:draw()
 
                 if self.cursor.blink.enabled then
                     if os.clock() >= self.cursor.blink.clock + self.cursor.blink.speed then -- BLINK :)
@@ -2134,6 +2161,19 @@ Memo.__index = Memo
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
+-- STATS LABELS
+
+globalLoop.stats.FPS = Label.new(0, 0, '0FPS')
+globalLoop.stats.EPS = Label.new(0, 0, '0EPS')
+
+globalLoop.stats.FPS.hidden = true
+globalLoop.stats.EPS.hidden = true
+
+table.insert(globalLoop.group.LIBPrivate, globalLoop.stats.FPS)
+table.insert(globalLoop.group.LIBPrivate, globalLoop.stats.EPS)
+
+--/////////////
+
 function drawOnLoopClock()
     globalLoop.drawOnClock = true
 end
@@ -2142,9 +2182,21 @@ function drawOnLoopEvent()
     globalLoop.drawOnClock = false
 end
 
-function enableLoopFPSCounter(_bool)
-    assert(type(_bool) == 'boolean', 'enableLoopFPSCounter: bool must be a boolean, got '..type(_bool))
-    globalLoop.FPS.counter.enabled = _bool
+function drawLoopStats(_bool)
+    assert(type(_bool) == 'boolean', 'enableLoopStats: bool must be a boolean, got '..type(_bool))
+    
+    -- IF IS BEING ACTIVATED AND POSITION SHOULD BE CALCULATED AUTOMATICALLY THEN CALCULATE IT
+    if _bool and globalLoop.stats.automaticPos then
+        globalLoop.stats.FPS.pos.x = globalMonitorWidth - #globalLoop.stats.FPS.text + 1
+        globalLoop.stats.FPS.pos.y = globalMonitorHeight - 1
+    
+        globalLoop.stats.EPS.pos.x = globalMonitorWidth - #globalLoop.stats.EPS.text + 1
+        globalLoop.stats.EPS.pos.y = globalMonitorHeight
+    end
+
+    -- HIDE/UNHIDE STATS
+    globalLoop.stats.FPS.hidden = not _bool
+    globalLoop.stats.EPS.hidden = not _bool
 end
 
 function setLoopClockSpeed(_sec)
@@ -2195,8 +2247,8 @@ function resetLoopSettings()
     
     globalLoop.APLWDBroadcastOnClock = false
     globalLoop.APLWDClearCacheOnDraw = true
-    globalLoop.FPS.value = 0
-    globalLoop.FPS.counter.enabled = false
+    globalLoop.stats.FPS.hidden = true
+    globalLoop.stats.EPS.hidden = true
 
     globalLoop.callbacks.onInit = function() end
     globalLoop.callbacks.onEvent = function() end -- CLEARS LOOP CALLBACKS
@@ -2234,16 +2286,24 @@ function loop()
             char = {}
         } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
 
+        local function insertOBJ(_obj)
+            if _obj.tick then
+                table.insert(globalLoop.events.tick, _obj)
+            end
+            if _obj.key then
+                table.insert(globalLoop.events.key, _obj)
+            end
+            if _obj.char then
+                table.insert(globalLoop.events.char, _obj)
+            end
+        end
+
+        for _, obj in pairs(globalLoop.group.LIBPrivate) do
+            insertOBJ(obj)
+        end
+
         for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do
-            if obj.tick then
-                table.insert(globalLoop.events.tick, obj)
-            end
-            if obj.key then
-                table.insert(globalLoop.events.key, obj)
-            end
-            if obj.char then
-                table.insert(globalLoop.events.char, obj)
-            end
+            insertOBJ(obj)
         end
     end
     
@@ -2258,14 +2318,26 @@ function loop()
     globalLoop.callbacks.onInit()
     drawLoopOBJs()
     
-    -- CREATE FPS CLOCK
-    local FPSClock = Clock.new(1)
-    FPSClock.FPS = 0
-    FPSClock:setCallback(
+    -- CREATE STATS CLOCK
+    local statsClock = Clock.new(1)
+    statsClock.FPS = 0
+    statsClock.EPS = 0
+    statsClock:setCallback(
         event.clock.onClock,
         function (self, event)
-            globalLoop.FPS.value = self.FPS
+            globalLoop.stats.FPS.text = tostring(self.FPS)..'FPS'
+            globalLoop.stats.EPS.text = tostring(self.EPS)..'EPS'
+
+            if globalLoop.stats.automaticPos then
+                globalLoop.stats.FPS.pos.x = globalMonitorWidth - #globalLoop.stats.FPS.text + 1
+                globalLoop.stats.FPS.pos.y = globalMonitorHeight - 1
+
+                globalLoop.stats.EPS.pos.x = globalMonitorWidth - #globalLoop.stats.EPS.text + 1
+                globalLoop.stats.EPS.pos.y = globalMonitorHeight
+            end
+
             self.FPS = 0
+            self.EPS = 0
         end
     )
     
@@ -2284,11 +2356,11 @@ function loop()
         local event = {os.pullEvent()} -- PULL EVENTS
 
         -- EVENT
-        if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
+        if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHasValue(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
             
             updateLoopOBJs(event[3], event[4], event)
 
-        elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHas(globalMonitorGroup.list, 'term'))) then
+        elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHasValue(globalMonitorGroup.list, 'term'))) then
             
             updateLoopOBJs(event[3], event[4], event)
 
@@ -2322,14 +2394,9 @@ function loop()
                 end
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
                 drawLoopOBJs()
-                
-                -- FPS draw counter
-                if globalLoop.FPS.counter.enabled then
-                    drawLoopFPSCounter()
-                end
 
-                -- add 1 Frame
-                FPSClock.FPS = FPSClock.FPS + 1
+                -- add 1 Frame to FPS
+                statsClock.FPS = statsClock.FPS + 1
             else
                 globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
             end
@@ -2344,8 +2411,8 @@ function loop()
             obj:tick(event)
         end
         
-        -- FPS calc
-        FPSClock:tick('calcFPS')
+        -- Stats clock
+        statsClock:tick()
 
         --EVENT DRAW
         if not globalLoop.drawOnClock then -- NON CLOCK DRAW
@@ -2358,44 +2425,18 @@ function loop()
             end
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
             drawLoopOBJs()
-            
-            -- FPS draw counter
-            if globalLoop.FPS.counter.enabled then
-                drawLoopFPSCounter()
-            end
 
-            -- add 1 Frame
-            FPSClock.FPS = FPSClock.FPS + 1
+            -- add 1 Frame to FPS
+            statsClock.FPS = statsClock.FPS + 1
         else
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
         end
         
+        -- add 1 Event to EPS
+        statsClock.EPS = statsClock.EPS + 1
+
         os.cancelTimer(Timer) -- DELETE TIMER
     end
-end
-
-function drawLoopFPSCounter()
-
-    local oldTextColor = globalTextColor
-    local oldBackgroundTextColor = globalBackgroundTextColor
-    
-    local backgroundColor = globalMonitor.getBackgroundColor()
-    
-    --SETTING THINGS TO FPS COUNTER SETTINGS
-    setTextColor(globalLoop.FPS.counter.colors.textColor)
-    if globalLoop.FPS.counter.colors.backgroundTextColor then
-        setBackgroundTextColor(globalLoop.FPS.counter.colors.backgroundTextColor)
-    else
-        setBackgroundTextColor(backgroundColor)
-    end
-
-    --DRAWING FPS COUNTER
-    local _text = tostring(globalLoop.FPS.value)..'FPS'
-    text(globalMonitorWidth - string.len(_text) + 1 + globalLoop.FPS.counter.offsets.x, globalMonitorHeight + globalLoop.FPS.counter.offsets.y, _text)
-    
-    --REVERTING ALL CHANGES MADE BEFORE
-    setTextColor(oldTextColor)
-    setBackgroundTextColor(oldBackgroundTextColor)
 end
 
 function drawLoopOBJs()
@@ -2405,6 +2446,13 @@ function drawLoopOBJs()
             local obj = globalLoop.group[globalLoop.selectedGroup][i]
             obj:draw()
         end
+
+        for i=#globalLoop.group.LIBPrivate, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
+            local obj = globalLoop.group.LIBPrivate[i]
+            obj:draw()
+        end
+
+        if APLWD.enabled then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
         local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
         for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
@@ -2414,12 +2462,24 @@ function drawLoopOBJs()
                     local obj = globalLoop.group[globalLoop.selectedGroup][i]
                     obj:draw()
                 end
+
+                for i=#globalLoop.group.LIBPrivate, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
+                    local obj = globalLoop.group.LIBPrivate[i]
+                    obj:draw()
+                end
+                
             end
         end
         setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
+        if APLWD.enabled then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
     else
         for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
             local obj = globalLoop.group[globalLoop.selectedGroup][i]
+            obj:draw()
+        end
+
+        for i=#globalLoop.group.LIBPrivate, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
+            local obj = globalLoop.group.LIBPrivate[i]
             obj:draw()
         end
     end
@@ -2429,6 +2489,13 @@ function updateLoopOBJs(_x, _y, _event)
     assert(type(_x) == 'number', 'updateLoopOBJs: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'updateLoopOBJs: y must be a number, got '..type(_y))
     local _objUpdated = false
+    
+    for _, obj in pairs(globalLoop.group.LIBPrivate) do -- UPDATE LIBPRIVATE OBJs
+        if obj:update(_x, _y, _event, _objUpdated) then
+            _objUpdated = true
+        end
+    end
+    
     for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
         if obj:update(_x, _y, _event, _objUpdated) then
             _objUpdated = true
