@@ -40,7 +40,7 @@ while true do
     print('Press any key to Receive & Analyze')
     print(' or press Backspace to exit.')
     print()
-    event = {os.pullEvent('key')}
+    local event = {os.pullEvent('key')}
 
     if event[2] == 14 then
         APLib.APLWD.close()
@@ -76,8 +76,18 @@ while true do
     print('  Texts received: '..tostring(Texts))
     print('  Points received: '..tostring(Points))
     print('  BackgroundChanges received: '..tostring(BackgroundChanges))
-    print()
+    print('\nPress ENTER to save data to APLWDCA.log')
+    print(' or press any other key to continue.\n')
 
+    event = {os.pullEvent('key')}
+
+    if event[2] == 28 then
+        print('Saving data...')
+        local File = fs.open('APLWDCA.log', 'w')
+        File.write(textutils.serialize(APLib.APLWD.cache))
+        File.close()
+        print('Data saved!\n')
+    end
 end
 
 APLib.setBackground(colors.black)

@@ -484,6 +484,7 @@ APLib.setMonitor('term')
 APLib.setLoopClockSpeed(0.1)
 APLib.drawOnLoopClock()
 
+APLib.globalLoop.stats.automaticPosOffset.x = APLib.globalLoop.stats.automaticPosOffset.x - 1
 APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.black
 APLib.drawLoopStats(true)
 

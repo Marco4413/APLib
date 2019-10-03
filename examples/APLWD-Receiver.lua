@@ -21,14 +21,20 @@ APLib.bClear()
 
 tArgs = { ... }
 if tArgs[1] == '/help' then
-    print('Args: modemName, senderName [, monitorName]')
+    print('Args:\nmodemName, senderName [, monitor1, monitor2, ...]')
     return
 end
 
 APLib.APLWD.enable(true)
 APLib.APLWD.connect(tArgs[1], tArgs[2])
 
-if tArgs[3] then
+if tArgs[3] == 'multi' then
+    table.remove(tArgs, 1)
+    table.remove(tArgs, 1)
+    table.remove(tArgs, 1)
+    APLib.setMonitorGroup(tArgs)
+    APLib.setMonitorGroupEnabled(true)
+elseif tArgs[3] then
     APLib.setMonitor(tArgs[3])
 end
 
@@ -36,11 +42,14 @@ while true do
 
     if APLib.APLWD.receiveCache() == 'disconnected' then
         break
+    elseif #APLib.APLWD.cache == 0 then
+        break
     end
 
+    APLib.bClearMonitorGroup()
     APLib.APLWD.drawCache()
 
 end
 
-APLib.setBackground(colors.black)
-APLib.bClear()
+APLib.setBackgroundMonitorGroup(colors.black)
+APLib.bClearMonitorGroup()

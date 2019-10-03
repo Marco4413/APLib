@@ -1,5 +1,5 @@
 
-ver = '1.13.0'
+ver = '1.13.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -25,7 +25,11 @@ globalLoop = {
     APLWDBroadcastOnClock = false,
     APLWDClearCacheOnDraw = true,
     stats = {
-        automaticPos = true
+        automaticPos = true,
+        automaticPosOffset = {
+            x = 0,
+            y = 0
+        }
         -- FPS (LABEL)      These are created near the end
         -- EPS (LABEL)
     },
@@ -260,6 +264,7 @@ end
 APLWD = {
     enabled = false,
     cacheWritable = true,
+    clearOnDraw = false,
     protocol = 'APLWD-'..ver,
     senderName = 'SendeR',
     receiverName = 'ReceiveR',
@@ -427,17 +432,20 @@ APLWD.drawCache = function ()
 
         if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
             globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
+            if APLWD.clearOnDraw then bClear(); end
             drawCache()
             local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
             for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
                 if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
                     setMonitor(monitorName)
                     globalLoop.callbacks.onMonitorChange(monitorName)
+                    if APLWD.clearOnDraw then bClear(); end
                     drawCache()
                 end
             end
             setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
         else
+            if APLWD.clearOnDraw then bClear(); end
             drawCache()
         end
 
@@ -638,7 +646,7 @@ Clock = {}
 
 function Clock.new(_interval)
 
-    assert(type(_interval) == 'number', 'Clock.new: interval must be a number, got '..type(_y))
+    assert(type(_interval) == 'number', 'Clock.new: interval must be a number, got '..type(_interval))
 
     --CREATE CLOCK
     _newClock = {
@@ -2187,11 +2195,14 @@ function drawLoopStats(_bool)
     
     -- IF IS BEING ACTIVATED AND POSITION SHOULD BE CALCULATED AUTOMATICALLY THEN CALCULATE IT
     if _bool and globalLoop.stats.automaticPos then
-        globalLoop.stats.FPS.pos.x = globalMonitorWidth - #globalLoop.stats.FPS.text + 1
-        globalLoop.stats.FPS.pos.y = globalMonitorHeight - 1
+        local offsetX = globalLoop.stats.automaticPosOffset.x
+        local offsetY = globalLoop.stats.automaticPosOffset.y
+
+        globalLoop.stats.FPS.pos.x = globalMonitorWidth - #globalLoop.stats.FPS.text + 1 + offsetX
+        globalLoop.stats.FPS.pos.y = globalMonitorHeight - 1 + offsetY
     
-        globalLoop.stats.EPS.pos.x = globalMonitorWidth - #globalLoop.stats.EPS.text + 1
-        globalLoop.stats.EPS.pos.y = globalMonitorHeight
+        globalLoop.stats.EPS.pos.x = globalMonitorWidth - #globalLoop.stats.EPS.text + 1 + offsetX
+        globalLoop.stats.EPS.pos.y = globalMonitorHeight + offsetY
     end
 
     -- HIDE/UNHIDE STATS
@@ -2329,11 +2340,14 @@ function loop()
             globalLoop.stats.EPS.text = tostring(self.EPS)..'EPS'
 
             if globalLoop.stats.automaticPos then
-                globalLoop.stats.FPS.pos.x = globalMonitorWidth - #globalLoop.stats.FPS.text + 1
-                globalLoop.stats.FPS.pos.y = globalMonitorHeight - 1
-
-                globalLoop.stats.EPS.pos.x = globalMonitorWidth - #globalLoop.stats.EPS.text + 1
-                globalLoop.stats.EPS.pos.y = globalMonitorHeight
+                local offsetX = globalLoop.stats.automaticPosOffset.x
+                local offsetY = globalLoop.stats.automaticPosOffset.y
+        
+                globalLoop.stats.FPS.pos.x = globalMonitorWidth - #globalLoop.stats.FPS.text + 1 + offsetX
+                globalLoop.stats.FPS.pos.y = globalMonitorHeight - 1 + offsetY
+            
+                globalLoop.stats.EPS.pos.x = globalMonitorWidth - #globalLoop.stats.EPS.text + 1 + offsetX
+                globalLoop.stats.EPS.pos.y = globalMonitorHeight + offsetY
             end
 
             self.FPS = 0
