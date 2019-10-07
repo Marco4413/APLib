@@ -40,7 +40,7 @@ while true do
     print('Press any key to Receive & Analyze')
     print(' or press Backspace to exit.')
     print()
-    local event = {os.pullEvent('key')}
+    local event = {os.pullEventRaw('key')}
 
     if event[2] == 14 then
         APLib.APLWD.close()
@@ -58,33 +58,52 @@ while true do
         break
     end
 
-    local Texts = 0
-    local Points = 0
-    local BackgroundChanges = 0
+    local Backgrounds = {}
+    local Texts = {}
+    local Points = {}
+    local Rectangles = {}
 
     for key, value in pairs(APLib.APLWD.cache) do
-        if value.type == 'text' then
-            Texts = Texts + 1
+        if value.type == 'background' then
+            table.insert(Backgrounds, value)
+        elseif value.type == 'text' then
+            table.insert(Texts, value)
         elseif value.type == 'point' then
-            Points = Points + 1
-        elseif value.type == 'background' then
-            BackgroundChanges = BackgroundChanges + 1
+            table.insert(Points, value)
+        elseif value.type == 'rectangle' then
+            table.insert(Rectangles, value)
         end
     end
 
     print('Collected data:')
-    print('  Texts received: '..tostring(Texts))
-    print('  Points received: '..tostring(Points))
-    print('  BackgroundChanges received: '..tostring(BackgroundChanges))
+    print('  [B]ackgrounds received: '..tostring(#Backgrounds))
+    print('  [T]exts received: '..tostring(#Texts))
+    print('  [P]oints received: '..tostring(#Points))
+    print('  [R]ectangles received: '..tostring(#Rectangles))
     print('\nPress ENTER to save data to APLWDCA.log')
     print(' or press any other key to continue.\n')
 
-    event = {os.pullEvent('key')}
+    event = {os.pullEventRaw('key')}
 
-    if event[2] == 28 then
+    if event[2] == 48 then -- 'B'
+        print('Backgrounds:\n'..textutils.serialize(Backgrounds)..'\n')
+    elseif event[2] == 20 then -- 'T'
+        print('Texts:\n'..textutils.serialize(Texts)..'\n')
+    elseif event[2] == 25 then -- 'P'
+        print('Points:\n'..textutils.serialize(Points)..'\n')
+    elseif event[2] == 19 then -- 'R'
+        print('Rectangles:\n'..textutils.serialize(Rectangles)..'\n')
+    elseif event[2] == 28 then -- ENTER
         print('Saving data...')
         local File = fs.open('APLWDCA.log', 'w')
-        File.write(textutils.serialize(APLib.APLWD.cache))
+        File.write(textutils.serialize(
+            {
+                Backgrounds = Backgrounds,
+                Texts = Texts,
+                Points = Points,
+                Rectangles = Rectangles
+            }
+        ))
         File.close()
         print('Data saved!\n')
     end

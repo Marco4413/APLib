@@ -1,5 +1,5 @@
 
-ver = '1.13.1'
+ver = '1.14.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -403,15 +403,10 @@ APLWD.drawCache = function ()
     if APLWD.enabled then
         local function drawCache()
             for key, value in pairs(APLWD.cache) do
-                if value.type == 'point' then
-                        
-                    local oldColor = globalColor
-                    
-                    setColor(value.color)
-                    point(value.pos.x, value.pos.y)
+                if value.type == 'background' then
 
-                    setColor(oldColor)
-
+                    setBackground(value.color)
+                
                 elseif value.type == 'text' then
 
                     local oldTextColor = globalTextColor
@@ -424,8 +419,24 @@ APLWD.drawCache = function ()
                     setTextColor(oldTextColor)
                     setBackgroundTextColor(oldBackgroundTextColor)
 
-                elseif value.type == 'background' then
-                    setBackground(value.color)
+                elseif value.type == 'point' then
+                        
+                    local oldColor = globalColor
+                    
+                    setColor(value.color)
+                    point(value.pos.x, value.pos.y)
+
+                    setColor(oldColor)
+
+                elseif value.type == 'rectangle' then
+
+                    local oldColor = globalColor
+
+                    setColor(value.color)
+                    rectangle(value.pos.x1, value.pos.y1, value.pos.x2, value.pos.y2)
+
+                    setColor(oldColor)
+
                 end
             end
         end
@@ -495,7 +506,8 @@ function setBackgroundMonitorGroup(_color)
         
         setBackground(_color)
 
-        if APLWD.enabled then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
+        local wasCacheWritable = APLWD.cacheWritable
+        if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
         local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
         for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
@@ -505,7 +517,7 @@ function setBackgroundMonitorGroup(_color)
             end
         end
         setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
-        if APLWD.enabled then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
+        if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
     else
         setBackground(_color)
     end
@@ -591,6 +603,8 @@ function rectangle(_x1, _y1, _x2, _y2)
     if _x1 > _x2 then _incrementX = -1; end
     if _y1 > _y2 then _incrementY = -1; end
     
+    local wasCacheWritable = APLWD.cacheWritable
+    if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
     if globalRectangleType == 1 then --CHECKS GLOBALRECTANGLETYPE
         for x = _x1, _x2, _incrementX do --DRAWS FILLED RECTANGLE
             for y = _y1, _y2, _incrementY do
@@ -606,6 +620,23 @@ function rectangle(_x1, _y1, _x2, _y2)
             point(_x1, y)
             point(_x2, y)
         end
+    end
+    if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- DISABLE APLWD CACHE WRITE
+    
+    if not APLWD.isReceiver and APLWD.cacheWritable then
+        table.insert(
+            APLWD.cache,
+            {
+                type = 'rectangle',
+                pos = {
+                    x1 = _x1,
+                    y1 = _y1,
+                    x2 = _x2,
+                    y2 = _y2
+                },
+                color = globalColor
+            }
+        )
     end
 end
 
@@ -2289,34 +2320,6 @@ function stopLoop()
 end
 
 function loop()
-
-    local function updateGlobalLoopEvents()
-        globalLoop.events = {
-            tick = {},
-            key = {},
-            char = {}
-        } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
-
-        local function insertOBJ(_obj)
-            if _obj.tick then
-                table.insert(globalLoop.events.tick, _obj)
-            end
-            if _obj.key then
-                table.insert(globalLoop.events.key, _obj)
-            end
-            if _obj.char then
-                table.insert(globalLoop.events.char, _obj)
-            end
-        end
-
-        for _, obj in pairs(globalLoop.group.LIBPrivate) do
-            insertOBJ(obj)
-        end
-
-        for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do
-            insertOBJ(obj)
-        end
-    end
     
     globalLoop.enabled = true -- ACTIVATE LOOP
 
@@ -2324,7 +2327,7 @@ function loop()
         bClear()
     end
     
-    updateGlobalLoopEvents()
+    updateLoopEvents()
     
     globalLoop.callbacks.onInit()
     drawLoopOBJs()
@@ -2361,7 +2364,7 @@ function loop()
     while globalLoop.enabled do
 
         if globalLoop.wasGroupChanged then
-            updateGlobalLoopEvents()
+            updateLoopEvents()
             globalLoop.wasGroupChanged = false
         end
 
@@ -2453,6 +2456,34 @@ function loop()
     end
 end
 
+function updateLoopEvents()
+    globalLoop.events = {
+        tick = {},
+        key = {},
+        char = {}
+    } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
+
+    local function insertOBJ(_obj)
+        if _obj.tick then
+            table.insert(globalLoop.events.tick, _obj)
+        end
+        if _obj.key then
+            table.insert(globalLoop.events.key, _obj)
+        end
+        if _obj.char then
+            table.insert(globalLoop.events.char, _obj)
+        end
+    end
+
+    for _, obj in pairs(globalLoop.group.LIBPrivate) do
+        insertOBJ(obj)
+    end
+
+    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do
+        insertOBJ(obj)
+    end
+end
+
 function drawLoopOBJs()
     if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
         globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
@@ -2466,7 +2497,8 @@ function drawLoopOBJs()
             obj:draw()
         end
 
-        if APLWD.enabled then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
+        local wasCacheWritable = APLWD.cacheWritable
+        if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
         local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
         for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
@@ -2485,7 +2517,7 @@ function drawLoopOBJs()
             end
         end
         setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
-        if APLWD.enabled then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
+        if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
     else
         for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
             local obj = globalLoop.group[globalLoop.selectedGroup][i]
