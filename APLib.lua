@@ -1,5 +1,5 @@
 
-ver = '1.14.0'
+ver = '1.15.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -61,7 +61,7 @@ globalCallbacks = {
 }
 
 --HELPERS
-rectangleTypes = {filled = 1, hollow = 2}
+rectangleTypes = {filled = 1, hollow = 2, checker = 3}
 
 event = {
     global = {
@@ -71,6 +71,16 @@ event = {
     },
     clock = {
         onClock = 1
+    },
+    point = {
+        onDraw = 1,
+        onPress = 2,
+        onFailedPress = 3
+    },
+    rectangle = {
+        onDraw = 1,
+        onPress = 2,
+        onFailedPress = 3
     },
     header = {
         onDraw = 1,
@@ -107,6 +117,11 @@ event = {
         onCursorBlink = 5,
         onActivated = 6,
         onDeactivated = 7
+    },
+    objGroup = {
+        onDraw = 1,
+        onOBJPress = 2,
+        onFailedOBJPress = 3
     },
     loop = {
         onInit = 1,
@@ -620,6 +635,17 @@ function rectangle(_x1, _y1, _x2, _y2)
             point(_x1, y)
             point(_x2, y)
         end
+    elseif globalRectangleType == 3 then -- DRAWS CHECKER RECTANGLE
+        local draw = true
+        for x = _x1, _x2, _incrementX do
+            for y = _y1, _y2, _incrementY do
+                if draw then
+                    point(x, y)
+                end
+                draw = not draw
+            end
+            if math.abs(_x1 - _x2) % 2 ~= 0 then draw = not draw; end
+        end
     end
     if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- DISABLE APLWD CACHE WRITE
     
@@ -713,6 +739,194 @@ function Clock:tick(_event)
 end
 
 Clock.__index = Clock
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
+Point = {}
+
+function Point.new(_x, _y, _color)
+    
+    assert(type(_x) == 'number', 'Point.new: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Point.new: y must be a number, got '..type(_y))
+    
+    --FIX THINGS
+    _color = tonumber(_color)
+
+    --CHECK THINGS
+    if not _color then
+        _color = globalColor
+    end
+
+    --CREATE RECTANGLE
+    _newPoint = {
+        color = _color,
+        hidden = false,
+        pos = {
+            x = _x,
+            y = _y
+        },
+        callbacks = {
+            onDraw = function() end,
+            onPress = function() end,
+            onFailedPress = function() end
+        }
+    }
+    setmetatable(_newPoint, Point) --SET POINT METATABLE
+    return _newPoint
+end
+
+function Point:draw()
+    if not self.hidden then
+        self.callbacks.onDraw(self)
+
+        local oldColor = globalColor
+        
+        --SETTING THINGS TO RECTANGLE SETTINGS
+        setColor(self.color)
+
+        --DRAWING RECTANGLE
+        point(self.pos.x, self.pos.y)
+
+        --REVERTING ALL CHANGES MADE BEFORE
+        setColor(oldColor)
+    end
+end
+
+function Point:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'Point.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onDraw = _callback
+    elseif _event == 2 then
+        self.callbacks.onPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onFailedPress = _callback
+    end
+end
+
+function Point:update(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Point.update: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Point.update: y must be a number, got '..type(_y))
+
+    if not self.hidden then
+        if not _cantUpdate then
+            if (self.pos.x == _x) and (self.pos.y == _y) then -- CHECK IF IT WAS PRESSED
+                self.callbacks.onPress(self, _event)
+                return true
+            else
+                self.callbacks.onFailedPress(self, _event)
+                return false
+            end
+        end
+    end
+    return false
+end
+
+function Point:hide(_bool)
+    assert(type(_bool) == 'boolean', 'Point.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
+Point.__index = Point
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
+Rectangle = {}
+
+function Rectangle.new(_x1, _y1, _x2, _y2, _color, _type)
+    
+    assert(type(_x1) == 'number', 'Rectangle.new: x1 must be a number, got '..type(_x1))
+    assert(type(_y1) == 'number', 'Rectangle.new: y1 must be a number, got '..type(_y1))
+    assert(type(_x2) == 'number', 'Rectangle.new: x2 must be a number, got '..type(_x2))
+    assert(type(_y2) == 'number', 'Rectangle.new: y2 must be a number, got '..type(_y2))
+    
+    --FIX THINGS
+    _color = tonumber(_color)
+    _type = tonumber(_type)
+
+    --CHECK THINGS
+    if not _color then
+        _color = globalColor
+    end
+    if not _type then
+        _type = globalRectangleType
+    end
+
+    --CREATE RECTANGLE
+    _newRectangle = {
+        color = _color,
+        type = _type,
+        hidden = false,
+        pos = {
+            x1 = _x1,
+            y1 = _y1,
+            x2 = _x2,
+            y2 = _y2
+        },
+        callbacks = {
+            onDraw = function() end,
+            onPress = function() end,
+            onFailedPress = function() end
+        }
+    }
+    setmetatable(_newRectangle, Rectangle) --SET RECTANGLE METATABLE
+    return _newRectangle
+end
+
+function Rectangle:draw()
+    if not self.hidden then
+        self.callbacks.onDraw(self)
+
+        local oldRectType = globalRectangleType
+        local oldColor = globalColor
+        
+        --SETTING THINGS TO RECTANGLE SETTINGS
+        setRectangleType(self.type)
+        setColor(self.color)
+
+        --DRAWING RECTANGLE
+        rectangle(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2)
+
+        --REVERTING ALL CHANGES MADE BEFORE
+        setRectangleType(oldRectType)
+        setColor(oldColor)
+    end
+end
+
+function Rectangle:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'Rectangle.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onDraw = _callback
+    elseif _event == 2 then
+        self.callbacks.onPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onFailedPress = _callback
+    end
+end
+
+function Rectangle:update(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Rectangle.update: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Rectangle.update: y must be a number, got '..type(_y))
+
+    if not self.hidden then
+        if not _cantUpdate then
+            if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
+                self.callbacks.onPress(self, _event)
+                return true
+            else
+                self.callbacks.onFailedPress(self, _event)
+                return false
+            end
+        end
+    end
+    return false
+end
+
+function Rectangle:hide(_bool)
+    assert(type(_bool) == 'boolean', 'Rectangle.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
+Rectangle.__index = Rectangle
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
@@ -1117,7 +1331,8 @@ function Menu:draw()
         --DRAWING MENU
         rectangle(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2)
         
-        for key, obj in pairs(self.objs) do -- DRAW OBJs THAT ARE ATTACHED TO IT
+        for i=#self.objs, 1, -1 do -- DRAW OBJs THAT ARE ATTACHED TO IT
+            local obj = self.objs[i]
             obj:draw()
         end
 
@@ -1199,15 +1414,16 @@ function Menu:update(_x, _y, _event, _cantUpdate)
             if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
                 -- IF THE MENU WAS PRESSED CALL CALLBACK
                 self.callbacks.onPress(self, _event)
+                local _objUpdated = false
                 for key, obj in pairs(self.objs) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
-                    if obj:update(_x, _y, _event) then
+                    if obj:update(_x, _y, _event, _objUpdated) then
                         self.callbacks.onButtonPress(self, obj, _event)
-                        break
+                        _objUpdated = true
                     else
                         self.callbacks.onFailedButtonPress(self, obj, _event)
                     end
                 end
-                return true
+                return _objUpdated
             else
                 self.callbacks.onFailedPress(self, _event)
                 return false
@@ -2200,6 +2416,114 @@ Memo.__index = Memo
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
+OBJGroup = {}
+
+function OBJGroup.new()
+
+    --CREATE OBJGROUP
+    _newOBJGroup = {
+        objs = {
+            list = {},
+            events = {
+                tick = {},
+                key = {},
+                char = {}
+            }
+        },
+        hidden = false,
+        callbacks = {
+            onDraw = function() end,
+            onOBJPress = function() end,
+            onFailedOBJPress = function() end
+        }
+    }
+    setmetatable(_newOBJGroup, OBJGroup) --SET OBJGROUP METATABLE
+    return _newOBJGroup
+end
+
+function OBJGroup:draw()
+    if not self.hidden then
+        self.callbacks.onDraw(self)
+        
+        for i=#self.objs.list, 1, -1 do -- DRAW OBJs THAT ARE ATTACHED TO IT
+            local obj = self.objs.list[i]
+            obj:draw()
+        end
+    end
+end
+
+function OBJGroup:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'OBJGroup.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onDraw = _callback
+    elseif _event == 2 then
+        self.callbacks.onOBJPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onFailedOBJPress = _callback
+    end
+end
+
+function OBJGroup:set(_objGroup)
+    assert(type(_objGroup) == 'table', 'OBJGroup.set: objGroup must be a table, got '..type(_objGroup))
+
+    self.objs.list = _objGroup
+    self.objs.events = getOBJSEvents(_objGroup)
+end
+
+function OBJGroup:update(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'OBJGroup.update: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'OBJGroup.update: y must be a number, got '..type(_y))
+
+    if not self.hidden then
+        if not _cantUpdate then
+            local _objUpdated = false
+            for key, obj in pairs(self.objs.list) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
+                if obj:update(_x, _y, _event, _objUpdated) then
+                    self.callbacks.onOBJPress(self, obj, _event)
+                    _objUpdated = true
+                else
+                    self.callbacks.onFailedOBJPress(self, obj, _event)
+                end
+            end
+            return _objUpdated
+        end
+    end
+    return false
+end
+
+function OBJGroup:tick(_event)
+    if not self.hidden then
+        for key, obj in pairs(self.objs.events.tick) do
+            obj:tick(_event)
+        end
+    end
+end
+
+function OBJGroup:key(_event)
+    if not self.hidden then
+        for key, obj in pairs(self.objs.events.key) do
+            obj:key(_event)
+        end
+    end
+end
+
+function OBJGroup:char(_event)
+    if not self.hidden then
+        for key, obj in pairs(self.objs.events.char) do
+            obj:char(_event)
+        end
+    end
+end
+
+function OBJGroup:hide(_bool)
+    assert(type(_bool) == 'boolean', 'OBJGroup.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
+OBJGroup.__index = OBJGroup
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
 -- STATS LABELS
 
 globalLoop.stats.FPS = Label.new(0, 0, '0FPS')
@@ -2456,32 +2780,43 @@ function loop()
     end
 end
 
-function updateLoopEvents()
-    globalLoop.events = {
+function getOBJSEvents(_table)
+    assert(type(_table) == 'table', 'getOBJSEvents: table must be a table, got '..type(_table))
+
+    local eventsTable = { -- CREATE RETURN TABLE
         tick = {},
         key = {},
         char = {}
-    } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
+    }
 
-    local function insertOBJ(_obj)
-        if _obj.tick then
-            table.insert(globalLoop.events.tick, _obj)
+    for _, obj in pairs(_table) do -- SORT OBJS IN TABLE
+        if obj.tick then
+            table.insert(eventsTable.tick, obj)
         end
-        if _obj.key then
-            table.insert(globalLoop.events.key, _obj)
+        if obj.key then
+            table.insert(eventsTable.key, obj)
         end
-        if _obj.char then
-            table.insert(globalLoop.events.char, _obj)
+        if obj.char then
+            table.insert(eventsTable.char, obj)
         end
     end
 
-    for _, obj in pairs(globalLoop.group.LIBPrivate) do
-        insertOBJ(obj)
+    return eventsTable -- RETURN EVENTSTABLE
+end
+
+function updateLoopEvents()
+    
+    local _objs = {} -- CREATE OBJS TABLE
+
+    for _, obj in pairs(globalLoop.group.LIBPrivate) do -- INSERT LIBPRIVATE OBJS TO OBJS TABLE
+        table.insert(_objs, obj)
+    end
+    
+    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- INSERT CURRENT LOOP GROUP OBJS TO OBJS TABLE
+        table.insert(_objs, obj)
     end
 
-    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do
-        insertOBJ(obj)
-    end
+    globalLoop.events = getOBJSEvents(_objs) -- PUT OBJS EVENTS INTO GLOBALLOOP EVENTS
 end
 
 function drawLoopOBJs()
