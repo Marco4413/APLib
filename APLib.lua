@@ -1,5 +1,5 @@
 
-ver = '1.15.0'
+ver = '1.16.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -48,8 +48,28 @@ globalLoop = {
     wasGroupChanged = false,
     selectedGroup = 'none',
     group = {
-        none = {},
-        LIBPrivate = {}
+        none = {
+            callbacks = {
+                onClock = function () end,
+                onEvent = function () end,
+                onTimer = function () end,
+                onMonitorChange = function () end,
+                onSet = function () end,
+                onUnset = function () end
+            },
+            objs = {}
+        },
+        LIBPrivate = {
+            callbacks = {
+                onClock = function () end,
+                onEvent = function () end,
+                onTimer = function () end,
+                onMonitorChange = function () end,
+                onSet = function () end,
+                onUnset = function () end
+            },
+            objs = {}
+        }
     }
 }
 
@@ -124,6 +144,14 @@ event = {
         onFailedOBJPress = 3
     },
     loop = {
+        group = {
+            onClock = 1,
+            onEvent = 2,
+            onTimer = 3,
+            onMonitorChange = 4,
+            onSet = 5,
+            onUnset = 6
+        },
         onInit = 1,
         onClock = 2,
         onEvent = 3,
@@ -458,6 +486,7 @@ APLWD.drawCache = function ()
 
         if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
             globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
+            globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
             if APLWD.clearOnDraw then bClear(); end
             drawCache()
             local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
@@ -465,6 +494,7 @@ APLWD.drawCache = function ()
                 if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
                     setMonitor(monitorName)
                     globalLoop.callbacks.onMonitorChange(monitorName)
+                    globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
                     if APLWD.clearOnDraw then bClear(); end
                     drawCache()
                 end
@@ -518,6 +548,7 @@ function setBackgroundMonitorGroup(_color)
     
     if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
         globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
+        globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
         
         setBackground(_color)
 
@@ -528,6 +559,7 @@ function setBackgroundMonitorGroup(_color)
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
                 setMonitor(monitorName)
                 globalLoop.callbacks.onMonitorChange(monitorName)
+                globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
                 setBackground(_color)
             end
         end
@@ -553,11 +585,17 @@ function text(_x, _y, _text)
     local oldTextColor = globalMonitor.getTextColor()
     local oldBackgroundColor = globalMonitor.getBackgroundColor()
 
-    globalMonitor.setCursorPos(_x, _y)
     globalMonitor.setTextColor(globalTextColor)
     globalMonitor.setBackgroundColor(globalBackgroundTextColor)
+    
+    local lines = stringSplit(_text, '\n')
+    
+    for key, value in pairs(lines) do
+        
+        globalMonitor.setCursorPos(_x, _y + key - 1)
+        globalMonitor.write(value)
 
-    globalMonitor.write(_text)
+    end
 
     globalMonitor.setCursorPos(oldCursorPosX, oldCursorPosY)
     globalMonitor.setTextColor(oldTextColor)
@@ -976,7 +1014,7 @@ function Header:draw()
         local oldBackgroundTextColor = globalBackgroundTextColor
 
         local backgroundColor = globalMonitor.getBackgroundColor()
-
+        
         --SETTING THINGS TO HEADER SETTINGS
         setTextColor(self.colors.textColor)
         if self.colors.backgroundTextColor then
@@ -984,10 +1022,23 @@ function Header:draw()
         else
             setBackgroundTextColor(backgroundColor)
         end
-
+        
         --DRAWING HEADER
-        self.pos.x = math.floor((globalMonitorWidth - string.len(self.text) + 1) / 2)
-        text(self.pos.x, self.pos.y, self.text)
+        
+        local lines = stringSplit(self.text, '\n')
+        
+        self.pos.x = math.floor((globalMonitorWidth - string.len(lines[1]) + 1) / 2)
+        text(self.pos.x, self.pos.y, lines[1])
+        
+        table.remove(lines, 1)
+        
+        for key, value in pairs(lines) do
+
+            local posX = math.floor((globalMonitorWidth - string.len(value) + 1) / 2)
+            local posY = self.pos.y + key
+            text(posX, posY, value)
+
+        end
 
         --REVERTING ALL CHANGES MADE BEFORE
         setTextColor(oldTextColor)
@@ -2532,8 +2583,8 @@ globalLoop.stats.EPS = Label.new(0, 0, '0EPS')
 globalLoop.stats.FPS.hidden = true
 globalLoop.stats.EPS.hidden = true
 
-table.insert(globalLoop.group.LIBPrivate, globalLoop.stats.FPS)
-table.insert(globalLoop.group.LIBPrivate, globalLoop.stats.EPS)
+table.insert(globalLoop.group.LIBPrivate.objs, globalLoop.stats.FPS)
+table.insert(globalLoop.group.LIBPrivate.objs, globalLoop.stats.EPS)
 
 --/////////////
 
@@ -2599,14 +2650,59 @@ function addLoopGroup(_groupName, _group)
     _groupName = tostring(_groupName)
     assert(_groupName ~= 'LIBPrivate' or _groupName ~= 'none', "addLoopGroup: can't overwrite Lib's Private groups")
     assert(type(_group) == 'table', 'addLoopGroup: group must be a table, got '..type(_group))
-    globalLoop.group[_groupName] = _group
+    globalLoop.group[_groupName] = {
+        callbacks = {
+            onClock = function () end,
+            onEvent = function () end,
+            onTimer = function () end,
+            onMonitorChange = function () end,
+            onSet = function () end,
+            onUnset = function () end
+        },
+        objs = _group
+    }
+end
+
+function removeLoopGroup(_groupName)
+    _groupName = tostring(_groupName)
+    assert(_groupName ~= 'LIBPrivate' or _groupName ~= 'none', "removeLoopGroup: can't remove Lib's Private groups")
+    globalLoop.group[_groupName] = nil
 end
 
 function setLoopGroup(_groupName)
     _groupName = tostring(_groupName)
     assert(globalLoop.group[_groupName], 'setLoopGroup: groupName must be a valid group.')
+    
+    local currentGroup = globalLoop.group[globalLoop.selectedGroup]
+    local newGroup = globalLoop.group[_groupName]
+
+    currentGroup.callbacks.onUnset(currentGroup, newGroup)
+    
     globalLoop.selectedGroup = _groupName
+
+    newGroup.callbacks.onSet(newGroup, currentGroup)
+
     globalLoop.wasGroupChanged = true
+end
+
+function setLoopGroupCallback(_groupName, _event, _callback)
+    _groupName = tostring(_groupName)
+    assert(_groupName ~= 'LIBPrivate' or _groupName ~= 'none', "setLoopGroupCallback: can't overwrite Lib's Private groups' callbacks")
+    assert(globalLoop.group[_groupName], 'setLoopGroupCallback: groupName must be a valid group.')
+    assert(type(_callback) == 'function', 'setLoopGroupCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        globalLoop.group[_groupName].callbacks.onClock = _callback
+    elseif _event == 2 then
+        globalLoop.group[_groupName].callbacks.onEvent = _callback
+    elseif _event == 3 then
+        globalLoop.group[_groupName].callbacks.onTimer = _callback
+    elseif _event == 4 then
+        globalLoop.group[_groupName].callbacks.onMonitorChange = _callback
+    elseif _event == 5 then
+        globalLoop.group[_groupName].callbacks.onSet = _callback
+    elseif _event == 6 then
+        globalLoop.group[_groupName].callbacks.onUnset = _callback
+    end
 end
 
 function resetLoopSettings()
@@ -2622,8 +2718,28 @@ function resetLoopSettings()
 
     globalLoop.selectedGroup = 'none'
     globalLoop.group = {
-        none = {},
-        LIBPrivate = globalLoop.group.LIBPrivate
+        none = {
+            callbacks = {
+                onClock = function () end,
+                onEvent = function () end,
+                onTimer = function () end,
+                onMonitorChange = function () end,
+                onSet = function () end,
+                onUnset = function () end
+            },
+            objs = {}
+        },
+        LIBPrivate = {
+            callbacks = {
+                onClock = function () end,
+                onEvent = function () end,
+                onTimer = function () end,
+                onMonitorChange = function () end,
+                onSet = function () end,
+                onUnset = function () end
+            },
+            objs = {}
+        }
     } --CLEARS LOOP GROUPS
 
     globalLoop.events = {
@@ -2717,6 +2833,7 @@ function loop()
 
         elseif event[1] == 'timer' then
             globalLoop.callbacks.onTimer(event)
+            globalLoop.group[globalLoop.selectedGroup].callbacks.onTimer(event)
         end
 
         -- CLOCK
@@ -2733,13 +2850,15 @@ function loop()
                 if globalLoop.autoClear then
                     bClear()
                 end
-                globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
+                globalLoop.callbacks.onClock(event) -- CLOCK CALLBACK
+                globalLoop.group[globalLoop.selectedGroup].callbacks.onClock(event)
                 drawLoopOBJs()
 
                 -- add 1 Frame to FPS
                 statsClock.FPS = statsClock.FPS + 1
             else
-                globalLoop.callbacks.onClock(event) -- TIMER CALLBACK
+                globalLoop.callbacks.onClock(event) -- CLOCK CALLBACK
+                globalLoop.group[globalLoop.selectedGroup].callbacks.onClock(event)
             end
 
             if APLWD.enabled and globalLoop.APLWDBroadcastOnClock then
@@ -2765,12 +2884,14 @@ function loop()
                 bClear()
             end
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+            globalLoop.group[globalLoop.selectedGroup].callbacks.onEvent(event)
             drawLoopOBJs()
 
             -- add 1 Frame to FPS
             statsClock.FPS = statsClock.FPS + 1
         else
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+            globalLoop.group[globalLoop.selectedGroup].callbacks.onEvent(event)
         end
         
         -- add 1 Event to EPS
@@ -2808,11 +2929,11 @@ function updateLoopEvents()
     
     local _objs = {} -- CREATE OBJS TABLE
 
-    for _, obj in pairs(globalLoop.group.LIBPrivate) do -- INSERT LIBPRIVATE OBJS TO OBJS TABLE
+    for _, obj in pairs(globalLoop.group.LIBPrivate.objs) do -- INSERT LIBPRIVATE OBJS TO OBJS TABLE
         table.insert(_objs, obj)
     end
     
-    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- INSERT CURRENT LOOP GROUP OBJS TO OBJS TABLE
+    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup].objs) do -- INSERT CURRENT LOOP GROUP OBJS TO OBJS TABLE
         table.insert(_objs, obj)
     end
 
@@ -2822,13 +2943,14 @@ end
 function drawLoopOBJs()
     if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
         globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
-        for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
-            local obj = globalLoop.group[globalLoop.selectedGroup][i]
+        globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
+        for i=#globalLoop.group[globalLoop.selectedGroup].objs, 1, -1 do -- DRAW ALL OBJs
+            local obj = globalLoop.group[globalLoop.selectedGroup].objs[i]
             obj:draw()
         end
 
         for i=#globalLoop.group.LIBPrivate, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
-            local obj = globalLoop.group.LIBPrivate[i]
+            local obj = globalLoop.group.LIBPrivate.objs[i]
             obj:draw()
         end
 
@@ -2839,13 +2961,14 @@ function drawLoopOBJs()
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
                 setMonitor(monitorName)
                 globalLoop.callbacks.onMonitorChange(monitorName)
-                for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
-                    local obj = globalLoop.group[globalLoop.selectedGroup][i]
+                globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
+                for i=#globalLoop.group[globalLoop.selectedGroup].objs, 1, -1 do -- DRAW ALL OBJs
+                    local obj = globalLoop.group[globalLoop.selectedGroup].objs[i]
                     obj:draw()
                 end
 
-                for i=#globalLoop.group.LIBPrivate, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
-                    local obj = globalLoop.group.LIBPrivate[i]
+                for i=#globalLoop.group.LIBPrivate.objs, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
+                    local obj = globalLoop.group.LIBPrivate.objs[i]
                     obj:draw()
                 end
                 
@@ -2854,13 +2977,13 @@ function drawLoopOBJs()
         setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
         if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
     else
-        for i=#globalLoop.group[globalLoop.selectedGroup], 1, -1 do -- DRAW ALL OBJs
-            local obj = globalLoop.group[globalLoop.selectedGroup][i]
+        for i=#globalLoop.group[globalLoop.selectedGroup].objs, 1, -1 do -- DRAW ALL OBJs
+            local obj = globalLoop.group[globalLoop.selectedGroup].objs[i]
             obj:draw()
         end
 
-        for i=#globalLoop.group.LIBPrivate, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
-            local obj = globalLoop.group.LIBPrivate[i]
+        for i=#globalLoop.group.LIBPrivate.objs, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
+            local obj = globalLoop.group.LIBPrivate.objs[i]
             obj:draw()
         end
     end
@@ -2871,13 +2994,13 @@ function updateLoopOBJs(_x, _y, _event)
     assert(type(_y) == 'number', 'updateLoopOBJs: y must be a number, got '..type(_y))
     local _objUpdated = false
     
-    for _, obj in pairs(globalLoop.group.LIBPrivate) do -- UPDATE LIBPRIVATE OBJs
+    for _, obj in pairs(globalLoop.group.LIBPrivate.objs) do -- UPDATE LIBPRIVATE OBJs
         if obj:update(_x, _y, _event, _objUpdated) then
             _objUpdated = true
         end
     end
     
-    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup]) do -- UPDATE OBJs
+    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup].objs) do -- UPDATE OBJs
         if obj:update(_x, _y, _event, _objUpdated) then
             _objUpdated = true
         end

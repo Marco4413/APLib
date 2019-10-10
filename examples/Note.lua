@@ -26,12 +26,20 @@ local bgColor = colors.gray
 local defPath
 
 if type(settings.get('NotesPath')) == 'string' then
+    local path = settings.get('NotesPath')
+    if path:sub(1, 1) == '/' then
+        path = path:sub(2)
+    end
+    if path:sub(#path, #path) == '/' then
+        path = path:sub(1, #path - 1)
+    end
     defPath = settings.get('NotesPath')
 else
-    defPath = '/Documents/'
+    defPath = 'Documents'
 end
 
-local CurrFile = defPath..'new'
+local owpFileName
+local CurrFile = defPath..'/new'
 local File
 
 APLib.setColor(shapeColor)
@@ -74,6 +82,19 @@ local lCursorPos = APLib.Label.new(21, 1, 'Cursor: ('..mMemo.cursor.pos.char..';
 
 local lPath = APLib.Label.new(1, 19, CurrFile)
 
+local main = {mFileMenu, mbFile, bCompact, mMemo, lLines, lCursorPos, lPath}
+
+-- CREATING OVERWRITE PROMPT
+local owprBG = APLib.Rectangle.new(18, 7, 32, 12, colors.lightGray)
+
+local owplL1 = APLib.Label.new(20, 8, 'Do you want', nil, colors.lightGray)
+local owplL2 = APLib.Label.new(19, 9, 'to overwrite?', nil, colors.lightGray)
+
+local owpbAccept = APLib.Button.new(19, 11, 21, 11, 'Yes', nil, nil, colors.gray, colors.lightGray)
+local owpbReject = APLib.Button.new(30, 11, 31, 11, 'No', nil, nil, colors.gray, colors.lightGray)
+
+local owp = {owplL1, owplL2, owpbAccept, owpbReject, owprBG}
+
 -- FUNCTIONS
 
 local function CompactNotes(_memo)
@@ -90,110 +111,67 @@ local function CompactNotes(_memo)
 end
 
 local function OpenNotes(_memo, FileName)
-    if FileName and FileName ~= '' then
-        if fs.exists(FileName) and not fs.isDir(FileName) then
-            _memo:setCursorPos(0, 0)
-            _memo.lines = {}
-            File = fs.open(FileName, "r")
-            while true do
-                local currLineText = File.readLine()
-                if currLineText == nil then break; end
-                table.insert(_memo.lines, currLineText)
-            end
-            File.close()
-            _memo:draw()
-        else
-            _memo:setCursorPos(0, 0)
-            FileName = 'new'
-            _memo.lines = {}
-            _memo:draw()
+    FileName = tostring(FileName)
+    if FileName:sub(1, #defPath) ~= defPath then FileName = defPath..'/'..FileName end
+
+    if fs.exists(FileName) and not fs.isDir(FileName) then
+        _memo:clear()
+        local File = fs.open(FileName, 'r')
+        while true do
+            local currLine = File.readLine()
+            if not currLine then break; end
+            table.insert(_memo.lines, currLine)
         end
-        if not string.sub(FileName, 1, #defPath) == defPath then
-            FileName = defPath..FileName
-            if (string.sub(FileName, #defPath + 1, #defPath + 1) == "/") then
-                FileName = string.sub(FileName, 1, #defPath)..string.sub(FileName, #defPath + 2)
-            end
+        File.close()
+
+        if fs.getDir(FileName):sub(1, #defPath) ~= defPath then
+            local name = APLib.stringSplit(FileName, '/')
+            name = name[#name]
+            FileName = defPath..'/'..fs.getDir(FileName)..'/'..name
         end
+
         CurrFile = FileName
+    else
+        _memo:clear()
+        CurrFile = defPath..'/new'
     end
 end
 
 local function SaveNotes(_memo, FileName)
-    if FileName and FileName ~= '' then
-        if string.sub(FileName, 1, #defPath) ~= defPath then
-            FileName = defPath..FileName
-            if (string.sub(FileName, #defPath + 1, #defPath + 1) == '/') then
-                FileName = string.sub(FileName, 1, #defPath)..string.sub(FileName, #defPath + 2)
-            end
+    FileName = tostring(FileName)
+    if FileName:sub(1, #defPath) ~= defPath then FileName = defPath..'/'..FileName end
+    if fs.getDir(FileName):sub(1, #defPath) ~= defPath then
+        local name = APLib.stringSplit(FileName, '/')
+        name = name[#name]
+        FileName = defPath..'/'..fs.getDir(FileName)..'/'..name
+    end
+
+    if not fs.exists(FileName) then
+        
+        local File = fs.open(FileName, 'w')
+        
+        if not File then return; end
+
+        for key, value in pairs(_memo.lines) do
+            File.writeLine(value)
         end
-        if not fs.exists(FileName) then
-            File = fs.open(FileName, 'w')
-            for i=1, #_memo.lines do
-                File.writeLine(_memo.lines[i])
-            end
-            File.close()
-            CurrFile = FileName
-        else
-            if not forceOverwrite then
-                local function drawPrompt()
-                    APLib.setColor(bgTextColor)
-                    APLib.rectangle(19, 8, 31, 11)
-                    APLib.setColor(shapeColor)
-                    APLib.text(20, 8, 'Do you want')
-                    APLib.text(19, 9, 'to overwrite?')
-                    APLib.text(19, 11, 'Yes(Y)')
-                    APLib.text(27, 11, 'No(N)')
-                end
-
-                local libInfo = APLib.getInfo()
-
-                if libInfo.globalMonitorGroup.enabled then
-
-                    libInfo.globalLoop.callbacks.onMonitorChange(monitorName)
-                    drawPrompt()
-                    local oldMonitor = libInfo.globalMonitorName
-                    for _, monitorName in pairs(libInfo.globalMonitorGroup.list) do
-                        APLib.setMonitor(monitorName)
-                        libInfo.globalLoop.callbacks.onMonitorChange(monitorName)
-                        drawPrompt()
-                    end
-                    APLib.setMonitor(oldMonitor)
-                else
-                    drawPrompt()
-                end
-
-                while true do
-                    local event = {os.pullEvent()}
-                    if event[1] == "char" then
-                        if (event[2] == "n") or (event[2] == "N") then
-                            break
-                        elseif (event[2] == "y") or (event[2] == "Y") then
-                            File = fs.open(FileName, "w")
-                            for i=1, #_memo.lines do
-                                File.writeLine(_memo.lines[i])
-                            end
-                            File.close()
-                            CurrFile = FileName
-                            break
-                        end
-                    end
-                end
-
-            end
-        end
-    elseif not FileName or FileName == '' then
-        File = fs.open(CurrFile, 'w')
-        for i=1, #_memo.lines do
-            File.writeLine(_memo.lines[i])
-        end
+        
         File.close()
+        
+        CurrFile = FileName
+        
+    else
+        
+        owpFileName = FileName
+        
+        APLib.setLoopGroup('owp')
+        
     end
 end
 
-
 local function DeleteNotes()
     fs.delete(CurrFile)
-    CurrFile = defPath..'new'
+    CurrFile = defPath..'/new'
 end
 
 local function RunNotes()
@@ -322,6 +300,38 @@ mbExit:setCallback(
 
 --//-----------------------------------------\\--
 
+owpbAccept:setCallback(
+    APLib.event.button.onPress,
+    function (self, event)
+        if owpFileName then
+            if not fs.isDir(owpFileName) then
+                fs.delete(owpFileName)
+                SaveNotes(mMemo, owpFileName)
+            end
+            owpFileName = nil
+            self:draw()
+            sleep(0.5)
+            APLib.setLoopGroup('main')
+            self.state = false
+        end
+    end
+)
+
+owpbReject:setCallback(
+    APLib.event.button.onPress,
+    function (self, event)
+        if owpFileName then
+            owpFileName = nil
+            self:draw()
+            sleep(0.5)
+            APLib.setLoopGroup('main')
+            self.state = false
+        end
+    end
+)
+
+--//-----------------------------------------\\--
+
 bCompact:setCallback(
     APLib.event.button.onPress,
     function (self, event)
@@ -386,6 +396,76 @@ mbmInput:setCallback(
     end
 )
 
+--//LOOP\\--
+
+APLib.addLoopGroup('main', main)
+APLib.addLoopGroup('owp', owp)
+
+APLib.setLoopGroupCallback(
+    'main',
+    APLib.event.loop.group.onClock,
+    function (event)
+
+        APLib.setColor(bgColor)
+        APLib.rectangle(lLines.pos.x, lLines.pos.y, lLines.pos.x + #lLines.text - 1, lLines.pos.y)
+        APLib.setColor(shapeColor)
+        
+        lLines.text = 'Lines: '..#mMemo.lines
+        lCursorPos.text = 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')'
+        lLines:draw()
+        lCursorPos:draw()
+
+        lPath.text = CurrFile
+    end
+)
+
+APLib.setLoopGroupCallback(
+    'main',
+    APLib.event.loop.group.onEvent,
+    function (event)
+        if event[1] == 'mouse_scroll' then
+            if event[2] == 1 then
+                mMemo:setCursorPos(mMemo.cursor.pos.char, mMemo.cursor.pos.line + event[2])
+            elseif event[2] == -1 then
+                mMemo:setCursorPos(mMemo.cursor.pos.char, mMemo.cursor.pos.line + event[2])
+            end
+        end
+    end
+)
+
+APLib.setLoopGroupCallback(
+    'main',
+    APLib.event.loop.group.onSet,
+    function (self, lastGroup)
+        APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.black
+    end
+)
+
+APLib.setLoopGroupCallback(
+    'owp',
+    APLib.event.loop.group.onEvent,
+    function (event)
+        if event[1] == 'char' then
+            event[2] = event[2]:lower()
+            if event[2] == 'y' then
+                owpbAccept.state = true
+                owpbAccept.callbacks.onPress(owpbAccept, event)
+            elseif event[2] == 'n' then
+                owpbReject.state = true
+                owpbReject.callbacks.onPress(owpbReject, event)
+            end
+        end
+    end
+)
+
+APLib.setLoopGroupCallback(
+    'owp',
+    APLib.event.loop.group.onSet,
+    function (self, lastGroup)
+        APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.gray
+    end
+)
+
 --//-----------------------------------------\\--
 
 -- MAIN PROGRAM
@@ -427,7 +507,6 @@ if table.maxn(tArgs) > 0 then
     end
 end
 
-local objs = {mFileMenu, mbFile, bCompact, mMemo, lLines, lCursorPos, lPath}
 
 APLib.setLoopCallback(
     APLib.event.loop.onInit,
@@ -439,31 +518,7 @@ APLib.setLoopCallback(
 APLib.setLoopCallback(
     APLib.event.loop.onClock,
     function (event)
-
         APLib.setBackgroundMonitorGroup(bgColor)
-
-        APLib.setColor(bgColor)
-        APLib.rectangle(lLines.pos.x, lLines.pos.y, lLines.pos.x + #lLines.text - 1, lLines.pos.y)
-        APLib.setColor(shapeColor)
-        lLines.text = 'Lines: '..#mMemo.lines
-        lCursorPos.text = 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')'
-        lLines:draw()
-        lCursorPos:draw()
-
-        lPath.text = CurrFile
-    end
-)
-
-APLib.setLoopCallback(
-    APLib.event.loop.onEvent,
-    function (event)
-        if event[1] == 'mouse_scroll' then
-            if event[2] == 1 then
-                mMemo:setCursorPos(mMemo.cursor.pos.char, mMemo.cursor.pos.line + event[2])
-            elseif event[2] == -1 then
-                mMemo:setCursorPos(mMemo.cursor.pos.char, mMemo.cursor.pos.line + event[2])
-            end
-        end
     end
 )
 
@@ -473,10 +528,8 @@ APLib.setLoopClockSpeed(0.1)
 APLib.drawOnLoopClock()
 
 APLib.globalLoop.stats.automaticPosOffset.x = APLib.globalLoop.stats.automaticPosOffset.x - 1
-APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.black
 APLib.drawLoopStats(true)
 
-APLib.addLoopGroup('main', objs)
 APLib.setLoopGroup('main')
 APLib.loop()
 
