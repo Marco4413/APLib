@@ -58,13 +58,16 @@ while true do
         break
     end
 
+    local bClears = {}
     local Backgrounds = {}
     local Texts = {}
     local Points = {}
     local Rectangles = {}
 
     for key, value in pairs(APLib.APLWD.cache) do
-        if value.type == 'background' then
+        if value.type == 'bClear' then
+            table.insert(bClears, value)
+        elseif value.type == 'background' then
             table.insert(Backgrounds, value)
         elseif value.type == 'text' then
             table.insert(Texts, value)
@@ -76,6 +79,7 @@ while true do
     end
 
     print('Collected data:')
+    print('  b[C]lears received: '..tostring(#bClears))
     print('  [B]ackgrounds received: '..tostring(#Backgrounds))
     print('  [T]exts received: '..tostring(#Texts))
     print('  [P]oints received: '..tostring(#Points))
@@ -85,7 +89,9 @@ while true do
 
     event = {os.pullEventRaw('key')}
 
-    if event[2] == 48 then -- 'B'
+    if event[2] == 46 then -- 'C'
+        print('bClears:\n'..textutils.serialize(bClears)..'\n')
+    elseif event[2] == 48 then -- 'B'
         print('Backgrounds:\n'..textutils.serialize(Backgrounds)..'\n')
     elseif event[2] == 20 then -- 'T'
         print('Texts:\n'..textutils.serialize(Texts)..'\n')
@@ -98,6 +104,7 @@ while true do
         local File = fs.open('APLWDCA.log', 'w')
         File.write(textutils.serialize(
             {
+                bClears = bClears,
                 Backgrounds = Backgrounds,
                 Texts = Texts,
                 Points = Points,

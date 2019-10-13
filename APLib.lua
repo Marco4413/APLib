@@ -1,5 +1,5 @@
 
-ver = '1.17.0'
+ver = '1.18.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -144,7 +144,8 @@ event = {
         onPress = 2,
         onFailedPress = 3,
         onOBJPress = 4,
-        onFailedOBJPress = 5
+        onFailedOBJPress = 5,
+        onEvent = 6
     },
     objGroup = {
         onDraw = 1,
@@ -242,38 +243,44 @@ function setGlobalCallback(_event, _callback)
     end
 end
 
-function getInfo()
-    local _Lib = {
-        ver = ver,
-        globalMonitor = globalMonitor,
-        globalMonitorName = globalMonitorName,
-        globalMonitorGroup = globalMonitorGroup,
-        globalMonitorWidth = globalMonitorWidth,
-        globalMonitorHeight = globalMonitorHeight,
-        globalColor = globalColor,
-        globalTextColor = globalTextColor,
-        globalBackgroundTextColor = globalBackgroundTextColor,
-        globalRectangleType = globalRectangleType,
-        globalLoop = globalLoop,
-        globalCallbacks = globalCallbacks
-    }
-    globalCallbacks.onInfo(_Lib)
-    return _Lib
-end
-
 function bClear()
     globalMonitor.clear()
     globalMonitor.setCursorPos(1, 1)
     globalCallbacks.onBClear()
+
+    if not APLWD.isReceiver and APLWD.cacheWritable then
+        table.insert(
+            APLWD.cache,
+            {
+                type = 'bClear'
+            }
+        )
+    end
 end
 
 function bClearMonitorGroup()
-    local oldMonitor = globalMonitorName
-    for _, monitorName in pairs(globalMonitorGroup.list) do
-        setMonitor(monitorName)
+    if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
+        globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
+        globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
+        
+        bClear()
+
+        local wasCacheWritable = APLWD.cacheWritable
+        if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
+        local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
+        for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
+            if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
+                setMonitor(monitorName)
+                globalLoop.callbacks.onMonitorChange(monitorName)
+                globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
+                bClear()
+            end
+        end
+        setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
+        if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
+    else
         bClear()
     end
-    setMonitor(oldMonitor)
 end
 
 function setMonitor(_monitorName)
@@ -290,6 +297,10 @@ function setMonitor(_monitorName)
         globalMonitorName = _monitorName
         globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
     end
+end
+
+function getMonitorSize()
+    return globalMonitorWidth, globalMonitorHeight
 end
 
 function setMonitorGroup(_monitorNameList)
@@ -331,9 +342,12 @@ APLWD.enable = function (_bool)
     APLWD.enabled = _bool
 end
 
-APLWD.enableBroadcastOnLoopClock = function (_bool)
-    assert(type(_bool) == 'boolean', 'APLWD.enableBroadcastOnLoopClock: bool must be a boolean, got '..type(_bool))
-    globalLoop.APLWDBroadcastOnClock = _bool
+APLWD.broadcastOnLoopClock = function ()
+    globalLoop.APLWDBroadcastOnClock = true
+end
+
+APLWD.broadcastOnLoopEvent = function ()
+    globalLoop.APLWDBroadcastOnClock = false
 end
 
 APLWD.enableClearCacheOnLoopDraw = function (_bool)
@@ -454,9 +468,13 @@ APLWD.drawCache = function ()
     if APLWD.enabled then
         local function drawCache()
             for key, value in pairs(APLWD.cache) do
-                if value.type == 'background' then
+                if value.type == 'bClear' then
 
-                    setBackground(value.color)
+                    bClearMonitorGroup()
+
+                elseif value.type == 'background' then
+
+                    setBackgroundMonitorGroup(value.color)
                 
                 elseif value.type == 'text' then
 
@@ -539,7 +557,14 @@ end
 function setBackground(_color)
     assert(type(_color) == 'number', 'setBackgroundColor: color must be a number, got '..type(_color))
     globalMonitor.setBackgroundColor(_color) --SET BG COLOR TO COLOR
+
+    local wasCacheWritable = APLWD.cacheWritable
+    if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
+
     bClear() --CLEARS MONITOR
+
+    if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
+
     if not APLWD.isReceiver and APLWD.cacheWritable then
         table.insert(
             APLWD.cache,
@@ -2535,7 +2560,8 @@ function Window.new(_x1, _y1, _x2, _y2, _color)
             onPress = function() end,
             onFailedPress = function() end,
             onOBJPress = function() end,
-            onFailedOBJPress = function() end
+            onFailedOBJPress = function() end,
+            onEvent = function() end
         }
     }
     setmetatable(_newWindow, Window) --SET WINDOW METATABLE
@@ -2579,6 +2605,8 @@ function Window:setCallback(_event, _callback)
         self.callbacks.onOBJPress = _callback
     elseif _event == 5 then
         self.callbacks.onFailedOBJPress = _callback
+    elseif _event == 6 then
+        self.callbacks.onEvent = _callback
     end
 end
 
@@ -2594,6 +2622,7 @@ function Window:update(_x, _y, _event, _cantUpdate)
     assert(type(_y) == 'number', 'Window.update: y must be a number, got '..type(_y))
 
     if not self.hidden then
+        self.callbacks.onEvent(self, _event)
         if not _cantUpdate then
             if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
                 -- IF THE WINDOW WAS PRESSED CALL CALLBACK
@@ -2628,6 +2657,7 @@ end
 
 function Window:mouse_drag(_event)
     if not self.hidden then
+        self.callbacks.onEvent(self, _event)
         if self.active then
 
             local xDiff = _event[3] - self.grabbedFrom.x
@@ -2655,6 +2685,7 @@ end
 
 function Window:tick(_event)
     if not self.hidden then
+        self.callbacks.onEvent(self, _event)
         for key, obj in pairs(self.objs.events.tick) do
             obj:tick(_event)
         end
@@ -2663,6 +2694,7 @@ end
 
 function Window:key(_event)
     if not self.hidden then
+        self.callbacks.onEvent(self, _event)
         for key, obj in pairs(self.objs.events.key) do
             obj:key(_event)
         end
@@ -2671,6 +2703,7 @@ end
 
 function Window:char(_event)
     if not self.hidden then
+        self.callbacks.onEvent(self, _event)
         for key, obj in pairs(self.objs.events.char) do
             obj:char(_event)
         end
@@ -2995,7 +3028,7 @@ function loop()
     globalLoop.enabled = true -- ACTIVATE LOOP
 
     if globalLoop.autoClear then
-        bClear()
+        bClearMonitorGroup()
     end
     
     updateLoopEvents()
@@ -3084,7 +3117,7 @@ function loop()
                 end
 
                 if globalLoop.autoClear then
-                    bClear()
+                    bClearMonitorGroup()
                 end
                 globalLoop.callbacks.onClock(event) -- CLOCK CALLBACK
                 globalLoop.group[globalLoop.selectedGroup].callbacks.onClock(event)
@@ -3098,10 +3131,30 @@ function loop()
             end
 
             if APLWD.enabled and globalLoop.APLWDBroadcastOnClock then
-                APLWD.broadcastCache()
+                APLWD.broadcastCache() -- BROADCAST APLWDCACHE ON CLOCK
             end
         end
-
+        
+        --EVENT DRAW
+        if not globalLoop.drawOnClock then -- NON CLOCK DRAW
+            if APLWD.enabled and globalLoop.APLWDClearCacheOnDraw then
+                APLWD.clearCache()
+            end
+            
+            if globalLoop.autoClear then
+                bClearMonitorGroup()
+            end
+            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+            globalLoop.group[globalLoop.selectedGroup].callbacks.onEvent(event)
+            drawLoopOBJs()
+            
+            -- add 1 Frame to FPS
+            statsClock.FPS = statsClock.FPS + 1
+        else
+            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
+            globalLoop.group[globalLoop.selectedGroup].callbacks.onEvent(event)
+        end
+        
         --OBJ EVENT TICK
         for _, obj in pairs(globalLoop.events.tick) do
             obj:tick(event)
@@ -3109,26 +3162,6 @@ function loop()
         
         -- Stats clock
         statsClock:tick()
-
-        --EVENT DRAW
-        if not globalLoop.drawOnClock then -- NON CLOCK DRAW
-            if APLWD.enabled and globalLoop.APLWDClearCacheOnDraw then
-                APLWD.clearCache()
-            end
-
-            if globalLoop.autoClear then
-                bClear()
-            end
-            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
-            globalLoop.group[globalLoop.selectedGroup].callbacks.onEvent(event)
-            drawLoopOBJs()
-
-            -- add 1 Frame to FPS
-            statsClock.FPS = statsClock.FPS + 1
-        else
-            globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
-            globalLoop.group[globalLoop.selectedGroup].callbacks.onEvent(event)
-        end
         
         -- add 1 Event to EPS
         statsClock.EPS = statsClock.EPS + 1

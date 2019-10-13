@@ -85,7 +85,6 @@ local lPath = APLib.Label.new(1, 19, CurrFile)
 local main = {mFileMenu, mbFile, bCompact, mMemo, lLines, lCursorPos, lPath}
 
 -- CREATING OVERWRITE PROMPT
-local owprBG = APLib.Rectangle.new(18, 7, 32, 12, colors.lightGray)
 
 local owplL1 = APLib.Label.new(20, 8, 'Do you want', nil, colors.lightGray)
 local owplL2 = APLib.Label.new(19, 9, 'to overwrite?', nil, colors.lightGray)
@@ -93,7 +92,8 @@ local owplL2 = APLib.Label.new(19, 9, 'to overwrite?', nil, colors.lightGray)
 local owpbAccept = APLib.Button.new(19, 11, 21, 11, 'Yes', nil, nil, colors.gray, colors.lightGray)
 local owpbReject = APLib.Button.new(30, 11, 31, 11, 'No', nil, nil, colors.gray, colors.lightGray)
 
-local owp = {owplL1, owplL2, owpbAccept, owpbReject, owprBG}
+local owpwMain = APLib.Window.new(18, 7, 32, 12, colors.lightGray)
+owpwMain:set({owplL1, owplL2, owpbAccept, owpbReject, owprBG})
 
 -- FUNCTIONS
 
@@ -399,7 +399,7 @@ mbmInput:setCallback(
 --//LOOP\\--
 
 APLib.addLoopGroup('main', main)
-APLib.addLoopGroup('owp', owp)
+APLib.addLoopGroup('owp', {owpwMain, cAPLWDBroadcast})
 
 APLib.setLoopGroupCallback(
     'main',
@@ -437,6 +437,7 @@ APLib.setLoopGroupCallback(
     'main',
     APLib.event.loop.group.onSet,
     function (self, lastGroup)
+        APLib.drawOnLoopClock()
         APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.black
     end
 )
@@ -462,6 +463,7 @@ APLib.setLoopGroupCallback(
     'owp',
     APLib.event.loop.group.onSet,
     function (self, lastGroup)
+        APLib.drawOnLoopEvent()
         APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.gray
     end
 )
@@ -525,7 +527,6 @@ APLib.setLoopCallback(
 APLib.setMonitor('term')
 
 APLib.setLoopClockSpeed(0.1)
-APLib.drawOnLoopClock()
 
 APLib.globalLoop.stats.automaticPosOffset.x = APLib.globalLoop.stats.automaticPosOffset.x - 1
 APLib.drawLoopStats(true)
