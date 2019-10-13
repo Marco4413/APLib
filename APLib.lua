@@ -1,5 +1,5 @@
 
-ver = '1.16.0'
+ver = '1.17.0'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -43,7 +43,8 @@ globalLoop = {
     events = {
         tick = {},
         key = {},
-        char = {}
+        char = {},
+        mouse_drag = {}
     },
     wasGroupChanged = false,
     selectedGroup = 'none',
@@ -137,6 +138,13 @@ event = {
         onCursorBlink = 5,
         onActivated = 6,
         onDeactivated = 7
+    },
+    window = {
+        onDraw = 1,
+        onPress = 2,
+        onFailedPress = 3,
+        onOBJPress = 4,
+        onFailedOBJPress = 5
     },
     objGroup = {
         onDraw = 1,
@@ -854,6 +862,8 @@ function Point:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onFailedPress(self, _event)
                 return false
             end
+        else
+            self.callbacks.onFailedPress(self, _event)
         end
     end
     return false
@@ -954,6 +964,8 @@ function Rectangle:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onFailedPress(self, _event)
                 return false
             end
+        else
+            self.callbacks.onFailedPress(self, _event)
         end
     end
     return false
@@ -1073,6 +1085,8 @@ function Header:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onFailedPress(self, _event)
                 return false
             end
+        else
+            self.callbacks.onFailedPress(self, _event)
         end
     end
     return false
@@ -1178,6 +1192,8 @@ function Label:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onFailedPress(self, _event)
                 return false
             end
+        else
+            self.callbacks.onFailedPress(self, _event)
         end
     end
     return false
@@ -1315,6 +1331,8 @@ function Button:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onFailedPress(self, _event)
                 return false
             end
+        else
+            self.callbacks.onFailedPress(self, _event)
         end
     end
     return false
@@ -1479,6 +1497,8 @@ function Menu:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onFailedPress(self, _event)
                 return false
             end
+        else
+            self.callbacks.onFailedPress(self, _event)
         end
     end
     return false
@@ -1718,6 +1738,8 @@ function PercentageBar:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onFailedPress(self, _event)
                 return false
             end
+        else
+            self.callbacks.onFailedPress(self, _event)
         end
     end
     return false
@@ -2467,6 +2489,204 @@ Memo.__index = Memo
 
 --//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
 
+Window = {}
+
+function Window.new(_x1, _y1, _x2, _y2, _color)
+    
+    assert(type(_x1) == 'number', 'Window.new: x1 must be a number, got '..type(_x1))
+    assert(type(_y1) == 'number', 'Window.new: y1 must be a number, got '..type(_y1))
+    assert(type(_x2) == 'number', 'Window.new: x2 must be a number, got '..type(_x2))
+    assert(type(_y2) == 'number', 'Window.new: y2 must be a number, got '..type(_y2))
+    
+    --FIX THINGS
+    _color = tonumber(_color)
+
+    --CHECK THINGS
+    if not _color then
+        _color = term.getBackgroundColor()
+    end
+
+    --CREATE WINDOW
+    _newWindow = {
+        active = false,
+        hidden = false,
+        color = _color,
+        grabbedFrom = {
+            x = 1,
+            y = 1
+        },
+        objs = {
+            list = {},
+            events = {
+                tick = {},
+                key = {},
+                char = {},
+                mouse_drag = {}
+            }
+        },
+        pos = {
+            x1 = _x1,
+            y1 = _y1,
+            x2 = _x2,
+            y2 = _y2
+        },
+        callbacks = {
+            onDraw = function() end,
+            onPress = function() end,
+            onFailedPress = function() end,
+            onOBJPress = function() end,
+            onFailedOBJPress = function() end
+        }
+    }
+    setmetatable(_newWindow, Window) --SET WINDOW METATABLE
+    return _newWindow
+end
+
+function Window:draw()
+    if not self.hidden then
+        self.callbacks.onDraw(self)
+
+        local oldRectType = globalRectangleType
+        local oldColor = globalColor
+        
+        --SETTING THINGS TO BUTTON SETTINGS
+        setRectangleType(rectangleTypes.filled)
+        setColor(self.color)
+
+        --DRAWING BUTTON
+        rectangle(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2)
+
+        --REVERTING ALL CHANGES MADE BEFORE
+        setRectangleType(oldRectType)
+        setColor(oldColor)
+        
+        for i=#self.objs.list, 1, -1 do -- DRAW OBJs THAT ARE ATTACHED TO IT
+            local obj = self.objs.list[i]
+            obj:draw()
+        end
+    end
+end
+
+function Window:setCallback(_event, _callback)
+    assert(type(_callback) == 'function', 'Window.setCallback: callback must be a function, got '..type(_callback))
+    if _event == 1 then
+        self.callbacks.onDraw = _callback
+    elseif _event == 2 then
+        self.callbacks.onPress = _callback
+    elseif _event == 3 then
+        self.callbacks.onFailedPress = _callback
+    elseif _event == 4 then
+        self.callbacks.onOBJPress = _callback
+    elseif _event == 5 then
+        self.callbacks.onFailedOBJPress = _callback
+    end
+end
+
+function Window:set(_objGroup)
+    assert(type(_objGroup) == 'table', 'Window.set: objGroup must be a table, got '..type(_objGroup))
+
+    self.objs.list = _objGroup
+    self.objs.events = getOBJSEvents(_objGroup)
+end
+
+function Window:update(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Window.update: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Window.update: y must be a number, got '..type(_y))
+
+    if not self.hidden then
+        if not _cantUpdate then
+            if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
+                -- IF THE WINDOW WAS PRESSED CALL CALLBACK
+                self.active = true
+                self.grabbedFrom.x = _x
+                self.grabbedFrom.y = _y
+                self.callbacks.onPress(self, _event)
+                
+                local _objUpdated = false
+                for key, obj in pairs(self.objs.list) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
+                    if obj:update(_x, _y, _event, _objUpdated) then
+                        self.callbacks.onOBJPress(self, obj, _event)
+                        _objUpdated = true
+                    else
+                        self.callbacks.onFailedOBJPress(self, obj, _event)
+                    end
+                end
+
+                return true
+            else
+                self.active = false
+                self.callbacks.onFailedPress(self, _event)
+                return false
+            end
+        else
+            self.active = false
+            self.callbacks.onFailedPress(self, _event)
+        end
+    end
+    return false
+end
+
+function Window:mouse_drag(_event)
+    if not self.hidden then
+        if self.active then
+
+            local xDiff = _event[3] - self.grabbedFrom.x
+            local yDiff = _event[4] - self.grabbedFrom.y
+
+            self.grabbedFrom.x = _event[3]
+            self.grabbedFrom.y = _event[4]
+
+            self.pos.x1 = self.pos.x1 + xDiff
+            self.pos.x2 = self.pos.x2 + xDiff
+            self.pos.y1 = self.pos.y1 + yDiff
+            self.pos.y2 = self.pos.y2 + yDiff
+
+            for _, obj in pairs(self.objs.list) do
+                if obj.pos.x then obj.pos.x = obj.pos.x + xDiff; end
+                if obj.pos.x1 then obj.pos.x1 = obj.pos.x1 + xDiff; end
+                if obj.pos.x2 then obj.pos.x2 = obj.pos.x2 + xDiff; end
+                if obj.pos.y then obj.pos.y = obj.pos.y + yDiff; end
+                if obj.pos.y1 then obj.pos.y1 = obj.pos.y1 + yDiff; end
+                if obj.pos.y2 then obj.pos.y2 = obj.pos.y2 + yDiff; end
+            end
+        end
+    end
+end
+
+function Window:tick(_event)
+    if not self.hidden then
+        for key, obj in pairs(self.objs.events.tick) do
+            obj:tick(_event)
+        end
+    end
+end
+
+function Window:key(_event)
+    if not self.hidden then
+        for key, obj in pairs(self.objs.events.key) do
+            obj:key(_event)
+        end
+    end
+end
+
+function Window:char(_event)
+    if not self.hidden then
+        for key, obj in pairs(self.objs.events.char) do
+            obj:char(_event)
+        end
+    end
+end
+
+
+function Window:hide(_bool)
+    assert(type(_bool) == 'boolean', 'Window.hide: bool must be a boolean, got '..type(_bool))
+    self.hidden = _bool
+end
+
+Window.__index = Window
+
+--//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////--
+
 OBJGroup = {}
 
 function OBJGroup.new()
@@ -2478,7 +2698,8 @@ function OBJGroup.new()
             events = {
                 tick = {},
                 key = {},
-                char = {}
+                char = {},
+                mouse_drag = {}
             }
         },
         hidden = false,
@@ -2562,6 +2783,14 @@ function OBJGroup:char(_event)
     if not self.hidden then
         for key, obj in pairs(self.objs.events.char) do
             obj:char(_event)
+        end
+    end
+end
+
+function OBJGroup:mouse_drag(_event)
+    if not self.hidden then
+        for key, obj in pairs(self.objs.events.mouse_drag) do
+            obj:mouse_drag(_event)
         end
     end
 end
@@ -2745,7 +2974,8 @@ function resetLoopSettings()
     globalLoop.events = {
         tick = {},
         key = {},
-        char = {}
+        char = {},
+        mouse_drag = {}
     } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
 end
 
@@ -2755,7 +2985,8 @@ function stopLoop()
     globalLoop.events = {
         tick = {},
         key = {},
-        char = {}
+        char = {},
+        mouse_drag = {}
     } -- CLEARS LOOP EVENTS SPECIFIC OBJ FUNCTIONS
 end
 
@@ -2829,6 +3060,11 @@ function loop()
         elseif event[1] == 'char' then
             for _, obj in pairs(globalLoop.events.char) do -- CALL OBJs CHAR EVENTS
                 obj:char(event)
+            end
+
+        elseif event[1] == 'mouse_drag' then
+            for _, obj in pairs(globalLoop.events.mouse_drag) do -- CALL OBJs MOUSE_DRAG EVENTS
+                obj:mouse_drag(event)
             end
 
         elseif event[1] == 'timer' then
@@ -2907,7 +3143,8 @@ function getOBJSEvents(_table)
     local eventsTable = { -- CREATE RETURN TABLE
         tick = {},
         key = {},
-        char = {}
+        char = {},
+        mouse_drag = {}
     }
 
     for _, obj in pairs(_table) do -- SORT OBJS IN TABLE
@@ -2919,6 +3156,9 @@ function getOBJSEvents(_table)
         end
         if obj.char then
             table.insert(eventsTable.char, obj)
+        end
+        if obj.mouse_drag then
+            table.insert(eventsTable.mouse_drag, obj)
         end
     end
 
