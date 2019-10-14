@@ -1,5 +1,5 @@
 
-ver = '1.18.0'
+ver = '1.18.1'
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -2540,6 +2540,14 @@ function Window.new(_x1, _y1, _x2, _y2, _color)
             x = 1,
             y = 1
         },
+        shadow = {
+            enabled = false,
+            color = colors.black,
+            offset = {
+                x = 1,
+                y = 1
+            }
+        },
         objs = {
             list = {},
             events = {
@@ -2575,14 +2583,26 @@ function Window:draw()
         local oldRectType = globalRectangleType
         local oldColor = globalColor
         
-        --SETTING THINGS TO BUTTON SETTINGS
+        -- SETTING THINGS TO WINDOW SETTINGS
         setRectangleType(rectangleTypes.filled)
+        
+        -- DRAWING SHADOW
+        if self.shadow.enabled then
+            setColor(self.shadow.color)
+            local xOff = self.shadow.offset.x
+            local yOff = self.shadow.offset.y
+            local x1 = self.pos.x1 + xOff
+            local x2 = self.pos.x2 + xOff
+            local y1 = self.pos.y1 + yOff
+            local y2 = self.pos.y2 + yOff
+            rectangle(x1, y1, x2, y2)
+        end
+        
+        -- DRAWING WINDOW
         setColor(self.color)
-
-        --DRAWING BUTTON
         rectangle(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2)
 
-        --REVERTING ALL CHANGES MADE BEFORE
+        -- REVERTING ALL CHANGES MADE BEFORE
         setRectangleType(oldRectType)
         setColor(oldColor)
         

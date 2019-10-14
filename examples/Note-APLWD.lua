@@ -102,6 +102,7 @@ local owpbAccept = APLib.Button.new(19, 11, 21, 11, 'Yes', nil, nil, colors.gray
 local owpbReject = APLib.Button.new(30, 11, 31, 11, 'No', nil, nil, colors.gray, colors.lightGray)
 
 local owpwMain = APLib.Window.new(18, 7, 32, 12, colors.lightGray)
+owpwMain.shadow.enabled = true
 owpwMain:set({owplL1, owplL2, owpbAccept, owpbReject, owprBG})
 
 -- FUNCTIONS

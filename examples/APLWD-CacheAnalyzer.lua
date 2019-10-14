@@ -37,6 +37,7 @@ end
 
 while true do
 
+    term.setTextColor(colors.red)
     print('Press any key to Receive & Analyze')
     print(' or press Backspace to exit.')
     print()
@@ -51,8 +52,10 @@ while true do
     if not received then
         if APLib.APLWD.enabled then
             APLib.APLWD.close()
+            term.setTextColor(colors.red)
             print("Didn't get any message in "..tostring(tArgs[3])..' Seconds')
         else
+            term.setTextColor(colors.red)
             print('The other user disconnected')
         end
         break
@@ -78,17 +81,21 @@ while true do
         end
     end
 
+    term.setTextColor(colors.yellow)
     print('Collected data:')
+    term.setTextColor(colors.green)
     print('  b[C]lears received: '..tostring(#bClears))
     print('  [B]ackgrounds received: '..tostring(#Backgrounds))
     print('  [T]exts received: '..tostring(#Texts))
     print('  [P]oints received: '..tostring(#Points))
     print('  [R]ectangles received: '..tostring(#Rectangles))
+    term.setTextColor(colors.red)
     print('\nPress ENTER to save data to APLWDCA.log')
     print(' or press any other key to continue.\n')
 
     event = {os.pullEventRaw('key')}
 
+    term.setTextColor(colors.green)
     if event[2] == 46 then -- 'C'
         print('bClears:\n'..textutils.serialize(bClears)..'\n')
     elseif event[2] == 48 then -- 'B'
@@ -112,6 +119,7 @@ while true do
             }
         ))
         File.close()
+        term.setTextColor(colors.yellow)
         print('Data saved!\n')
     end
 end
