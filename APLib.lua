@@ -1,5 +1,10 @@
 
-ver = '1.18.1'
+info = {
+    ver = '1.19.0',
+    author = 'hds536jhmk',
+    website = 'https://github.com/hds536jhmk/APLib'
+}
+
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -76,7 +81,6 @@ globalLoop = {
 
 --GLOBALCALLBACKS
 globalCallbacks = {
-    onInfo = function() end,
     onBClear = function() end,
     onSetMonitor = function() end
 }
@@ -86,9 +90,8 @@ rectangleTypes = {filled = 1, hollow = 2, checker = 3}
 
 event = {
     global = {
-        onInfo = 1,
-        onBClear = 2,
-        onSetMonitor = 3
+        onBClear = 1,
+        onSetMonitor = 2
     },
     clock = {
         onClock = 1
@@ -235,10 +238,8 @@ OSSettings = {
 function setGlobalCallback(_event, _callback)
     assert(type(_callback) == 'function', 'setGlobalCallback: callback must be a function, got '..type(_callback))
     if _event == 1 then
-        globalCallbacks.onInfo = _callback
-    elseif _event == 2 then
         globalCallbacks.onBClear = _callback
-    elseif _event == 3 then
+    elseif _event == 2 then
         globalCallbacks.onSetMonitor = _callback
     end
 end
