@@ -1,10 +1,51 @@
 # Index
 
-[TOC]
+- [Index](#index)
+- [Basics](#basics)
+  - [1. Importing the Library](#1-importing-the-library)
+    - [1. The Simple way](#1-the-simple-way)
+    - [2. The Advanced way](#2-the-advanced-way)
+  - [2. Tables](#2-tables)
+    - [1. rectangleTypes](#1-rectangletypes)
+    - [2. event](#2-event)
+  - [3. Basic functions](#3-basic-functions)
+    - [1. tableHas (table, value)](#1-tablehas-table-value)
+    - [2. setGlobalCallback (event, callback)](#2-setglobalcallback-event-callback)
+    - [3. getInfo ()](#3-getinfo-)
+    - [4. bClear ()](#4-bclear-)
+    - [5. setColor (color)](#5-setcolor-color)
+    - [6. setTextColor (color)](#6-settextcolor-color)
+    - [7. setBackgroundTextColor (color)](#7-setbackgroundtextcolor-color)
+    - [8. setBackground (color)](#8-setbackground-color)
+    - [9. setRectangleType (type)](#9-setrectangletype-type)
+    - [10. text (x, y, text)](#10-text-x-y-text)
+    - [11. point (x, y)](#11-point-x-y)
+    - [12. rectangle (x1, y1, x2, y2)](#12-rectangle-x1-y1-x2-y2)
+  - [4. Objects](#4-objects)
+    - [1. Object types](#1-object-types)
+    - [2. 'Universal methods'](#2-universal-methods)
+    - [3. 'Universal events'](#3-universal-events)
+    - [4. Making the loop easy (kind of)](#4-making-the-loop-easy-kind-of)
+    - [5. Header](#5-header)
+      - [1. Header Functions](#1-header-functions)
+      - [2. Header Events](#2-header-events)
+      - [3. Header Example](#3-header-example)
+    - [6. Label](#6-label)
+      - [1. Label Functions](#1-label-functions)
+      - [2. Label Events](#2-label-events)
+      - [3. Label Example](#3-label-example)
+    - [7. Button](#7-button)
+      - [1. Button Functions](#1-button-functions)
+      - [2. Button Events](#2-button-events)
+      - [3. Button Example](#3-button-example)
+    - [7. Menu](#7-menu)
+      - [1. Menu Functions](#1-menu-functions)
+      - [2. Menu Events](#2-menu-events)
+      - [3. Menu Example](#3-menu-example)
 
 # Basics
 
-**doc** revision: **3**
+**doc** revision: **4**
 
 ## 1. Importing the Library
 
@@ -37,7 +78,7 @@ But it **still isn't fixed**.
 
 It's **not really advanced but it uses a feature that the API has, and that's the Library Setup!** **The user can setup the library by launching it with setup arg** (it still has a **drawback but it's less painful for the developer**):
 
-![Library_Setup](assets\Chapter_1\Library_Setup.png)
+![](./assets/Chapter_1/Library_Setup.png)
 
 **What the setup does** is making a **new entry on CraftOS Settings that's called 'APLibPath'** which **contains the path to the library** (**drawback**: when the **API is moved, setup must be redone**).
 Here's the **code to open the library by using this cool feature**:
@@ -121,7 +162,7 @@ Here i'll teach you **how to use basic functions** (nothing related to objects) 
 
 This function explains itself very easily, it **searches in table if value exists and it return either true or false**.
 
-![tableHas_example](assets\Chapter_3\tableHas_example.png)
+![](./assets/Chapter_3/tableHas_example.png)
 
 
 
@@ -143,7 +184,7 @@ APLib.setGlobalCallback(
 APLib.getInfo()
 ```
 
-![setGlobalCallback_example](assets\Chapter_3\setGlobalCallback_example.png)
+![](./assets/Chapter_3/setGlobalCallback_example.png)
 
 
 
@@ -151,7 +192,7 @@ APLib.getInfo()
 
 Very simple like the last two... It simply ***returns a table* which contains all infos that are stored in the API**.
 
-![getInfo_example](assets\Chapter_3\getInfo_example.png)
+![](./assets/Chapter_3/getInfo_example.png)
 
 
 
@@ -159,11 +200,11 @@ Very simple like the last two... It simply ***returns a table* which contains al
 
 bClear stands for 'Better Clear', it **clears the currently selected monitor and keeps its background color** that can be set with [setBackground](#8-setbackground-color) function.
 
-![bClear_example#1](assets\Chapter_3\bClear_example_1.png)
+![](./assets/Chapter_3/bClear_example_1.png)
 
-![bClear_example#2](assets\Chapter_3\bClear_example_2.png)
+![](./assets/Chapter_3/bClear_example_2.png)
 
-![bClear_example#3](assets\Chapter_3\bClear_example_3.png)
+![](./assets/Chapter_3/bClear_example_3.png)
 
 
 
@@ -171,7 +212,7 @@ bClear stands for 'Better Clear', it **clears the currently selected monitor and
 
 It *saves color to a variable* that's in the **API** so it **knows with which color it should draw shapes**.
 
-![setColor_example](assets\Chapter_3\setColor_example.png)
+![](./assets/Chapter_3/setColor_example.png)
 
 
 
@@ -179,7 +220,7 @@ It *saves color to a variable* that's in the **API** so it **knows with which co
 
 It *saves color to a variable* that's in the **API** so it **knows with which color it should write text**.
 
-![setTextColor_example](assets\Chapter_3\setTextColor_example.png)
+![](./assets/Chapter_3/setTextColor_example.png)
 
 
 
@@ -187,7 +228,7 @@ It *saves color to a variable* that's in the **API** so it **knows with which co
 
 It *saves color to a variable* that's in the **API** so it **knows with which color it should draw the background of a text**.
 
-![setBackgroundTextColor_example](assets\Chapter_3\setBackgroundTextColor_example.png)
+![](./assets/Chapter_3/setBackgroundTextColor_example.png)
 
 
 
@@ -195,9 +236,9 @@ It *saves color to a variable* that's in the **API** so it **knows with which co
 
 As you saw earlier this function **changes the background color of the currently selected monitor and [bClears](#4-bclear-) it** *so that the monitor shows that color on the background*.
 
-![setBackground_example#1](assets\Chapter_3\setBackground_example_1.png)
+![](./assets/Chapter_3/setBackground_example_1.png)
 
-![setBackground_example#2](assets\Chapter_3\setBackground_example_2.png)
+![](./assets/Chapter_3/setBackground_example_2.png)
 
 
 
@@ -214,7 +255,7 @@ APLib.setRectangleType(APLib.rectangleTypes.hollow)
 APLib.rectangle(1, 19, 10, 9)
 ```
 
-![setRectangleType_example](assets\Chapter_3\setRectangleType_example.png)
+![](./assets/Chapter_3/setRectangleType_example.png)
 
 
 
@@ -234,7 +275,7 @@ APLib.setBackgroundTextColor(colors.blue)
 APLib.text(1, 19, 'Hello World!')
 ```
 
-![text_example](assets\Chapter_3\text_example.png)
+![](./assets/Chapter_3/text_example.png)
 
 
 
@@ -242,7 +283,7 @@ APLib.text(1, 19, 'Hello World!')
 
 Simple as always! **Draws a point on *x*, *y***.
 
-![point_example](assets\Chapter_3\point_example.png)
+![](./assets/Chapter_3/point_example.png)
 
 
 
@@ -250,7 +291,7 @@ Simple as always! **Draws a point on *x*, *y***.
 
 Last but not least... the RECTANGLE function, **draws a rectangle from *x1*, *y1* to *x2*, *y2***.
 
-![rectangle_example](assets\Chapter_3\rectangle_example.png)
+![](./assets/Chapter_3/rectangle_example.png)
 
 
 
