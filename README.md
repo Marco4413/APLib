@@ -1,11 +1,30 @@
-![logo](.\logo.png)
+![](./logo.png)
 
 What does APLib mean? Well, it means "**All Purpose Library**". This is a library for [**Minecraft's Computercraft**]( https://computercraft.cc ) and that aims to make a lot of things much easier to do (like drawing on the screen or making GUIs).
 I advise you to check the [**examples**](./examples) or [**the old attempt to a documentation**](./docs) while the new documentation is being made.
 
 # Documentation INDEX
 
-[TOC]
+- [Documentation INDEX](#documentation-index)
+- [Info [Table]](#info-table)
+- [globalMonitor [Peripheral]](#globalmonitor-peripheral)
+- [globalMonitorName [String]](#globalmonitorname-string)
+- [globalMonitorGroup [Table]](#globalmonitorgroup-table)
+- [globalMonitorWidth & globalMonitorHeight [Int]](#globalmonitorwidth--globalmonitorheight-int)
+- [globalColor [Color]](#globalcolor-color)
+- [globalTextColor [Color]](#globaltextcolor-color)
+- [globalBackgroundTextColor [Color]](#globalbackgroundtextcolor-color)
+- [globalRectangleType [Integer]](#globalrectangletype-integer)
+- [globalLoop [Table]](#globalloop-table)
+  - [globalLoop.stats [Table]](#globalloopstats-table)
+  - [globalLoop.callbacks [Table]](#globalloopcallbacks-table)
+  - [globalLoop.events [Table]](#globalloopevents-table)
+  - [globalLoop.group [Table]](#globalloopgroup-table)
+- [globalCallbacks [Table]](#globalcallbacks-table)
+- [rectangleTypes [Table]](#rectangletypes-table)
+- [event [Table]](#event-table)
+- [stringSplit [Function]](#stringsplit-function)
+- [tableHasKey [Function]](#tablehaskey-function)
 
 # Info [Table]
 
@@ -127,9 +146,9 @@ This table holds every loop group that is created by the library or by the user.
 
 | key     | type    | value                                                        |
 | ------- | ------- | ------------------------------------------------------------ |
-| filled  | Integer | The number that [**globalRectangleType**](#globalRectangleType [Integer]) should be set to if you want a filled rectangle |
-| hollow  | Integer | The number that [**globalRectangleType**](#globalRectangleType [Integer]) should be set to if you want a hollow rectangle |
-| checker | Integer | The number that [**globalRectangleType**](#globalRectangleType [Integer]) should be set to if you want a checkerboard like rectangle |
+| filled  | Integer | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a filled rectangle |
+| hollow  | Integer | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a hollow rectangle |
+| checker | Integer | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a checkerboard like rectangle |
 
 # event [Table]
 
