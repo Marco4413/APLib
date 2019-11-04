@@ -1,0 +1,14 @@
+site_name: APLib docs
+repo_url: https://github.com/hds536jhmk/APLib/
+site_author: hds536jhmk
+copyright: Copyright (c) 2019, hds536jhmk hds536jhmk@gmail.com
+nav:
+    - Home: index.md
+    - Read Only Variables: read_only_variables.md
+    - Writeable Variables: writeable_variables.md
+    - Functions: functions.md
+    - Objects: objects.md
+    - About: LICENSE.md
+theme: readthedocs
+extra:
+  version: 0.1
