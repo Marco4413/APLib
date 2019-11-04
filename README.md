@@ -5,7 +5,6 @@ I advise you to check the [**examples**](./examples) or [**the old attempt to a 
 
 # Documentation INDEX
 
-- [Documentation INDEX](#documentation-index)
 - [Info [Table]](#info-table)
 - [globalMonitor [Peripheral]](#globalmonitor-peripheral)
 - [globalMonitorName [String]](#globalmonitorname-string)
@@ -14,7 +13,7 @@ I advise you to check the [**examples**](./examples) or [**the old attempt to a 
 - [globalColor [Color]](#globalcolor-color)
 - [globalTextColor [Color]](#globaltextcolor-color)
 - [globalBackgroundTextColor [Color]](#globalbackgroundtextcolor-color)
-- [globalRectangleType [Integer]](#globalrectangletype-integer)
+- [globalRectangleType [Int]](#globalrectangletype-int)
 - [globalLoop [Table]](#globalloop-table)
   - [globalLoop.stats [Table]](#globalloopstats-table)
   - [globalLoop.callbacks [Table]](#globalloopcallbacks-table)
@@ -25,6 +24,17 @@ I advise you to check the [**examples**](./examples) or [**the old attempt to a 
 - [event [Table]](#event-table)
 - [stringSplit [Function]](#stringsplit-function)
 - [tableHasKey [Function]](#tablehaskey-function)
+- [tableHasValue [Function]](#tablehasvalue-function)
+- [OSSettings [Table]](#ossettings-table)
+- [setGlobalCallback [Function]](#setglobalcallback-function)
+- [bClear [Function]](#bclear-function)
+- [bClearMonitorGroup [Function]](#bclearmonitorgroup-function)
+- [setMonitor [Function]](#setmonitor-function)
+- [getMonitorSize [Function]](#getmonitorsize-function)
+- [setMonitorGroup [Function]](#setmonitorgroup-function)
+- [setMonitorGroupEnabled [Function]](#setmonitorgroupenabled-function)
+- [resetMonitorGroup [Function]](#resetmonitorgroup-function)
+- [APLWD [Table]](#aplwd-table)
 
 # Info [Table]
 
@@ -71,7 +81,7 @@ It holds the color that is going to be used for all texts.
 
 It holds the color that is going to be used for all texts' backgrounds.
 
-# globalRectangleType [Integer]
+# globalRectangleType [Int]
 
 It holds the type of rectangle that should be drawn.
 
@@ -84,7 +94,7 @@ It holds the type of rectangle that should be drawn.
 | drawOnClock           | Boolean | Says if the loop should draw when the clock ticks or when the loop gets an event (Note: Timer is also an event) |
 | clockSpeed            | Float   | How many seconds are between each clock tick                 |
 | timerSpeed            | Float   | How many seconds are between each timer (Note: Timer can get out of sync if the loop gets other events, i recommend using the clock if you need to make something precise) |
-| clock                 | Float   | Each time the clock ticks this gets updated to **os.clock()** |
+| clock                 | Float   | Each time the clock ticks this gets updated to [**os.clock()**](http://www.computercraft.info/wiki/Os.clock) |
 | APLWDBroadcastOnClock | Boolean | Says if APLWD should broadcast on loop clock                 |
 | APLWDClearCacheOnDraw | Boolean | Says if APLWD should clear its cache before the loop starts drawing again (Note: This should always be on or APLWD will get a lot slower when broadcasting) |
 | stats                 | Table   | Table that holds info about stats counters                   |
@@ -144,11 +154,11 @@ This table holds every loop group that is created by the library or by the user.
 
 # rectangleTypes [Table]
 
-| key     | type    | value                                                        |
-| ------- | ------- | ------------------------------------------------------------ |
-| filled  | Integer | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a filled rectangle |
-| hollow  | Integer | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a hollow rectangle |
-| checker | Integer | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a checkerboard like rectangle |
+| key     | type | value                                                        |
+| ------- | ---- | ------------------------------------------------------------ |
+| filled  | Int  | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a filled rectangle |
+| hollow  | Int  | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a hollow rectangle |
+| checker | Int  | The number that [**globalRectangleType**](#globalrectangletype-integer) should be set to if you want a checkerboard like rectangle |
 
 # event [Table]
 
@@ -251,15 +261,112 @@ Returns an Array of substrings that are splitted by the specified separator
 
 # tableHasKey [Function]
 
-**WIP**
+| argument | type             | info                                         |
+| -------- | ---------------- | -------------------------------------------- |
+| table    | Table            | The table where you want  to search the key  |
+| key      | String or Number | The key that you want to search in the table |
 
+Returns false if the table doesn't have the key
+Returns true and the value of the key if the table has the key
 
+# tableHasValue [Function]
 
+| argument | type  | info                                           |
+| -------- | ----- | ---------------------------------------------- |
+| table    | Table | The table where you want to search the value   |
+| value    | Any   | The value that you want to search in the table |
 
+Returns false if the table doesn't have the value
+Returns true and the key of the value if the table has the value
 
+# OSSettings [Table]
 
+| key          | type     | value                                                        |
+| ------------ | -------- | ------------------------------------------------------------ |
+| settingsPath | String   | Says where the settings need to be saved to keep them on reboot (Default: "/.settings") |
+| set          | Function | Does [**settings.set()**](http://www.computercraft.info/wiki/Settings.set) and also [**settings.save()**](http://www.computercraft.info/wiki/Settings.save) with path OSSettings.settingsPath |
+| get          | Function | [**settings.get()**](http://www.computercraft.info/wiki/Settings.get) |
+| getNames     | Function | [**settings.getNames()**](http://www.computercraft.info/wiki/Settings.getNames) |
+| unset        | Function | Does [**settings.unset()**](http://www.computercraft.info/wiki/Settings.unset) and also [**settings.save()**](http://www.computercraft.info/wiki/Settings.save) with path OSSettings.settingsPath |
 
+So I was tired of having to do settings.set or settings.unset and settings.save to make "permanent" 
 
+# setGlobalCallback [Function]
+
+| argument | type     | info                                                         |
+| -------- | -------- | ------------------------------------------------------------ |
+| event    | Int      | The event that the callback should be binded to (Use [**event.global**](#event-table) Table) |
+| callback | Function | The function that's going to be called when event is triggered |
+
+Sets a callback to some global events
+
+# bClear [Function]
+
+It clears [**globalMonitor**](#globalMonitor-Peripheral)
+
+# bClearMonitorGroup [Function]
+
+It clears [**globalMonitor**](#globalMonitor-Peripheral) and [**globalMonitorGroup**](#globalMonitorGroup-Table)
+
+# setMonitor [Function]
+
+| argument    | type   | info                                                         |
+| ----------- | ------ | ------------------------------------------------------------ |
+| monitorName | String | The name of the monitor that you want to set [**globalMonitor**](#globalMonitor-Peripheral) and [**globalMonitorName**](#globalMonitorName-String) to |
+
+It Updates [**globalMonitor**](#globalMonitor-Peripheral), [**globalMonitorName**](#globalMonitorName-String) and [**globalMonitorWidth & globalMonitorHeight**](#globalMonitorWidth--globalMonitorHeight-Int) to the monitor you selected.
+
+# getMonitorSize [Function]
+
+Returns [**globalMonitorWidth, globalMonitorHeight**](#globalMonitorWidth--globalMonitorHeight-Int)
+
+# setMonitorGroup [Function]
+
+| argument        | type  | info                                                         |
+| --------------- | ----- | ------------------------------------------------------------ |
+| monitorNameList | Array | It's an Array of monitor names that are going to be used to manage monitor groups |
+
+Sets [**globalMonitorGroup**](#globalMonitorGroup-Table).list to monitorNameList and checks if monitor names are valid
+
+# setMonitorGroupEnabled [Function]
+
+| argument | type    | info                                                         |
+| -------- | ------- | ------------------------------------------------------------ |
+| bool     | Boolean | It sets to bool [**globalMonitorGroup**](#globalMonitorGroup-Table).enabled |
+
+# resetMonitorGroup [Function]
+
+Clears [**globalMonitorGroup**](#globalMonitorGroup-Table).list Table
+
+# APLWD [Table]
+
+APLWD means "**All Purpose Lib Wireless Drawing**" Its a protocol that sends data via rednet.
+It sends a table that contains every shape, **text**, [**bClear**](#bClear-Function) or **background** that was drawn on the host computer to every receiver computer that is connected to it.
+
+| key                        | type     | value                                                        |
+| -------------------------- | -------- | ------------------------------------------------------------ |
+| enabled                    | Boolean  | If set to true APLWD gets enabled                            |
+| cacheWritable              | Boolean  | If set to true APLWD will start to store data in its cache   |
+| clearOnDraw                | Boolean  | When using **APLWD.drawCache()** if set to true it will clear the screen before drawing cache |
+| protocol                   | String   | The name of the protocol used to host a rednet connection (Do not change) |
+| senderName                 | String   | The prefix of a sender (Do not change)                       |
+| receiverName               | String   | The prefix of a receiver (Do not change)                     |
+| isReceiver                 | Boolean  | If set to true then the computer is a receiver               |
+| myName                     | String   | The name of the computer in the rednet network               |
+| senderID                   | String   | The computer ID of the sender                                |
+| modemName                  | String   | The name of the modem that is being used                     |
+| cache                      | Table    | It holds everything that should be sended to the receivers to make them draw properly |
+| enable                     | Function | Sets APLWD.enabled                                           |
+| broadcastOnLoopClock       | Function | Sets [**globalLoop**](#globalLoop-Table).APLWDBroadcastOnClock to true |
+| dontBroadcastOnLoopClock   | Function | Sets [**globalLoop**](#globalLoop-Table).APLWDBroadcastOnClock to false |
+| enableClearCacheOnLoopDraw | Function | Sets APLWD.clearOnDraw                                       |
+| host                       | Function | Creates a server where receivers can connect to receive data |
+| connect                    | Function | Connects to an host to receive data                          |
+| close                      | Function | Closes server or closes connection to server and turns of the modem |
+| broadcastCache             | Function | Broadcasts its cache to all connected computers              |
+| receiveCache               | Function | Waits until it receives data from host or times out if specified |
+| drawCache                  | Function | Draws APLWD.cache                                            |
+| clearCache                 | Function | Clears APLWD.cache                                           |
 
 
 

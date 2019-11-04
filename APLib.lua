@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.19.0',
+    ver = '1.19.1',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -347,7 +347,7 @@ APLWD.broadcastOnLoopClock = function ()
     globalLoop.APLWDBroadcastOnClock = true
 end
 
-APLWD.broadcastOnLoopEvent = function ()
+APLWD.dontBroadcastOnLoopClock = function ()
     globalLoop.APLWDBroadcastOnClock = false
 end
 
