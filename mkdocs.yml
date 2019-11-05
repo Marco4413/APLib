@@ -4,11 +4,28 @@ site_author: hds536jhmk
 copyright: Copyright (c) 2019, hds536jhmk hds536jhmk@gmail.com
 nav:
     - Home: index.md
-    - Read Only Variables: read_only_variables.md
-    - Writeable Variables: writeable_variables.md
-    - Functions: functions.md
-    - Objects: objects.md
+    - Read Only Variables:
+      - Home: read_only_variables/index.md
+      - Constants: read_only_variables/constants.md
+      - Loop: read_only_variables/loop.md
+      - Monitor Management: read_only_variables/monitor_management.md
+      - Special: read_only_variables/special.md
+    - Writeable Variables:
+      - Home: writeable_variables/index.md
+      - Drawing: writeable_variables/drawing.md
+      - Loop: writeable_variables/loop.md
+    - Functions:
+      - Home: functions/index.md
+      - APLWD: functions/APLWD.md
+      - Drawing: functions/drawing.md
+      - Loop: functions/loop.md
+      - Monitor Management: functions/monitor_management.md
+      - OSSettings: functions/OSSettings.md
+      - Setting Callbacks: functions/setting_callbacks.md
+      - Utilities: functions/utilities.md
+    - Objects:
+      - Home: objects/index.md
     - About: LICENSE.md
 theme: readthedocs
 extra:
-  version: 0.1
+  version: 0.2
