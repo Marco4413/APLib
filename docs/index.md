@@ -11,4 +11,4 @@ Terminal arguments are arguments with which you can open the library to do simpl
 
 * `"libfile" ver` Will print on the screen the current version of the library.
 * `"libfile" setup` Will make a new entry in CraftOS's settings called "APLibPath", it's a string that contains where the library is located on the computer's storage.
-* `"libfile" create [PATH]` Will make PATH a new file that loads the library automatically if setup was done else it will return with an error telling the user to set it up.
+* `"libfile" create [PATH]` Will make `PATH` a new file that loads the library automatically if setup was done else it will return with an error telling the user to set it up.

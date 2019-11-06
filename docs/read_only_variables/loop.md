@@ -37,14 +37,14 @@ Holds all the settings that are going to be used for the loop.
 
 ### globalLoop.events [Table]
 
-| key        | type  | value                                                                                                  |
-| ---------- | ----- | ------------------------------------------------------------------------------------------------------ |
-| tick       | Table | Holds object functions that should be called every tick (Tick being every time the loop gets an event) |
-| key        | Table | Holds object functions that should be called every time the loop gets a key event                      |
-| char       | Table | Holds object functions that should be called every time the loop gets a char event                     |
-| mouse_drag | Table | Holds object functions that should be called every time the loop gets a mouse_drag event               |
-
-Note: All objects have an **update** function that isn't in this table... That's because i didn't think this lib would have become this large so i didn't rename it to **touch** so it's in every object because **there isn't a check if it's there or not**.
+| key        | type  | value                                                                                                             |
+| ---------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
+| draw       | Table | Holds object functions that should be called every loop draw                                                      |
+| touch      | Table | Holds object functions that should be called every time the loop gets either a monitor_touch or mouse_click event |
+| tick       | Table | Holds object functions that should be called every tick (Tick being every time the loop gets an event)            |
+| key        | Table | Holds object functions that should be called every time the loop gets a key event                                 |
+| char       | Table | Holds object functions that should be called every time the loop gets a char event                                |
+| mouse_drag | Table | Holds object functions that should be called every time the loop gets a mouse_drag event                          |
 
 ### globalLoop.group [Table]
 
