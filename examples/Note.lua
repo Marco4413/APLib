@@ -1,18 +1,24 @@
 
 --//INIT\\--
-if type(settings.get('APLibPath')) == 'string' then
-    if fs.exists(tostring(settings.get('APLibPath'))) then
-        os.loadAPI(settings.get('APLibPath'))
+local APLibPath = settings.get('APLibPath')
+
+if type(APLibPath) == 'string' then
+    if fs.exists(tostring(APLibPath)) then
+        os.loadAPI(APLibPath)
     else
         error("Couldn't open APLib through path: "..tostring(
-                settings.get('APLibPath')
+            APLibPath
             )..";\n remember that if you move the lib's folder\n you must set it up again via 'LIBFILE setup'")
     end
 else
     error("Couldn't open APLib through path: "..tostring(
-        settings.get('APLibPath')
+        APLibPath
     )..";\n probably you haven't completed Lib setup\n via 'LIBFILE setup' or the setup failed")
 end
+
+local APLib = APLibPath:reverse():sub(1, APLibPath:reverse():find('/') - 1):reverse()
+if APLib:sub(#APLib - 3) == '.lua' then APLib = APLib:sub(1, #APLib - 4); end
+local APLib = _ENV[APLib]
 
 --//-----------------------------------------\\--
 

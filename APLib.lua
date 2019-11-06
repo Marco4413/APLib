@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.19.1',
+    ver = '1.20.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -46,6 +46,8 @@ globalLoop = {
         onMonitorChange = function() end
     },
     events = {
+        draw = {},
+        touch = {},
         tick = {},
         key = {},
         char = {},
@@ -328,7 +330,7 @@ APLWD = {
     enabled = false,
     cacheWritable = true,
     clearOnDraw = false,
-    protocol = 'APLWD-'..ver,
+    protocol = 'APLWD-'..info.ver,
     senderName = 'SendeR',
     receiverName = 'ReceiveR',
     isReceiver = true,
@@ -796,10 +798,6 @@ function Clock:setCallback(_event, _callback)
     end
 end
 
-function Clock:draw() end
-
-function Clock:update() return false; end
-
 function Clock:tick(_event)
     -- CLOCK
     if os.clock() >= self.clock + self.interval then
@@ -875,9 +873,9 @@ function Point:setCallback(_event, _callback)
     end
 end
 
-function Point:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'Point.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Point.update: y must be a number, got '..type(_y))
+function Point:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Point.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Point.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate then
@@ -977,9 +975,9 @@ function Rectangle:setCallback(_event, _callback)
     end
 end
 
-function Rectangle:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'Rectangle.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Rectangle.update: y must be a number, got '..type(_y))
+function Rectangle:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Rectangle.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Rectangle.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate then
@@ -1095,9 +1093,9 @@ function Header:setCallback(_event, _callback)
     end
 end
 
-function Header:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'Header.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Header.update: y must be a number, got '..type(_y))
+function Header:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Header.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Header.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate then
@@ -1203,9 +1201,9 @@ function Label:setCallback(_event, _callback)
     end
 end
 
-function Label:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'Label.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Label.update: y must be a number, got '..type(_y))
+function Label:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Label.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Label.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate then
@@ -1342,9 +1340,9 @@ function Button:setCallback(_event, _callback)
     end
 end
 
-function Button:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'Button.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Button.update: y must be a number, got '..type(_y))
+function Button:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Button.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Button.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate then
@@ -1500,9 +1498,9 @@ function Menu:set(_table, _fillMenu)
     end
 end
 
-function Menu:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'Menu.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Menu.update: y must be a number, got '..type(_y))
+function Menu:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Menu.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Menu.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate then
@@ -1511,7 +1509,7 @@ function Menu:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onPress(self, _event)
                 local _objUpdated = false
                 for key, obj in pairs(self.objs) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
-                    if obj:update(_x, _y, _event, _objUpdated) then
+                    if obj:touch(_x, _y, _event, _objUpdated) then
                         self.callbacks.onButtonPress(self, obj, _event)
                         _objUpdated = true
                     else
@@ -1750,9 +1748,9 @@ function PercentageBar:setValue(_value)
     self.value.percentage = math.floor(((self.value.current - self.value.min) / (self.value.max - self.value.min)) * 100)
 end
 
-function PercentageBar:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'PercentageBar.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'PercentageBar.update: y must be a number, got '..type(_y))
+function PercentageBar:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'PercentageBar.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'PercentageBar.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate then
@@ -2350,9 +2348,9 @@ function Memo:edit(_event)
 end
 
 
-function Memo:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'Memo.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Memo.update: y must be a number, got '..type(_y))
+function Memo:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Memo.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Memo.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate and checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
@@ -2552,6 +2550,8 @@ function Window.new(_x1, _y1, _x2, _y2, _color)
         objs = {
             list = {},
             events = {
+                draw = {},
+                touch = {},
                 tick = {},
                 key = {},
                 char = {},
@@ -2607,8 +2607,7 @@ function Window:draw()
         setRectangleType(oldRectType)
         setColor(oldColor)
         
-        for i=#self.objs.list, 1, -1 do -- DRAW OBJs THAT ARE ATTACHED TO IT
-            local obj = self.objs.list[i]
+        for _, obj in pairs(self.objs.events.draw) do -- DRAW OBJs THAT ARE ATTACHED TO IT
             obj:draw()
         end
     end
@@ -2638,9 +2637,9 @@ function Window:set(_objGroup)
     self.objs.events = getOBJSEvents(_objGroup)
 end
 
-function Window:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'Window.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Window.update: y must be a number, got '..type(_y))
+function Window:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'Window.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'Window.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         self.callbacks.onEvent(self, _event)
@@ -2653,8 +2652,8 @@ function Window:update(_x, _y, _event, _cantUpdate)
                 self.callbacks.onPress(self, _event)
                 
                 local _objUpdated = false
-                for key, obj in pairs(self.objs.list) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
-                    if obj:update(_x, _y, _event, _objUpdated) then
+                for _, obj in pairs(self.objs.events.touch) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
+                    if obj:touch(_x, _y, _event, _objUpdated) then
                         self.callbacks.onOBJPress(self, obj, _event)
                         _objUpdated = true
                     else
@@ -2750,6 +2749,8 @@ function OBJGroup.new()
         objs = {
             list = {},
             events = {
+                draw = {},
+                touch = {},
                 tick = {},
                 key = {},
                 char = {},
@@ -2771,8 +2772,7 @@ function OBJGroup:draw()
     if not self.hidden then
         self.callbacks.onDraw(self)
         
-        for i=#self.objs.list, 1, -1 do -- DRAW OBJs THAT ARE ATTACHED TO IT
-            local obj = self.objs.list[i]
+        for _, obj in pairs(self.objs.events.draw) do -- DRAW OBJs THAT ARE ATTACHED TO IT
             obj:draw()
         end
     end
@@ -2796,15 +2796,15 @@ function OBJGroup:set(_objGroup)
     self.objs.events = getOBJSEvents(_objGroup)
 end
 
-function OBJGroup:update(_x, _y, _event, _cantUpdate)
-    assert(type(_x) == 'number', 'OBJGroup.update: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'OBJGroup.update: y must be a number, got '..type(_y))
+function OBJGroup:touch(_x, _y, _event, _cantUpdate)
+    assert(type(_x) == 'number', 'OBJGroup.touch: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'OBJGroup.touch: y must be a number, got '..type(_y))
 
     if not self.hidden then
         if not _cantUpdate then
             local _objUpdated = false
-            for key, obj in pairs(self.objs.list) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
-                if obj:update(_x, _y, _event, _objUpdated) then
+            for _, obj in pairs(self.objs.list) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
+                if obj:touch(_x, _y, _event, _objUpdated) then
                     self.callbacks.onOBJPress(self, obj, _event)
                     _objUpdated = true
                 else
@@ -3026,6 +3026,8 @@ function resetLoopSettings()
     } --CLEARS LOOP GROUPS
 
     globalLoop.events = {
+        draw = {},
+        touch = {},
         tick = {},
         key = {},
         char = {},
@@ -3037,6 +3039,8 @@ function stopLoop()
     globalLoop.enabled = false --STOP LOOP
     
     globalLoop.events = {
+        draw = {},
+        touch = {},
         tick = {},
         key = {},
         char = {},
@@ -3100,15 +3104,15 @@ function loop()
         -- EVENT
         if event[1] == 'monitor_touch' and (event[2] == globalMonitorName or (globalMonitorGroup.enabled and tableHasValue(globalMonitorGroup.list, event[2]))) then -- CHECK IF A BUTTON WAS PRESSED
             
-            updateLoopOBJs(event[3], event[4], event)
+            touchLoopOBJs(event[3], event[4], event)
 
         elseif event[1] == 'mouse_click' and (globalMonitorName == 'term' or (globalMonitorGroup.enabled and tableHasValue(globalMonitorGroup.list, 'term'))) then
             
-            updateLoopOBJs(event[3], event[4], event)
+            touchLoopOBJs(event[3], event[4], event)
 
         elseif event[1] == 'key' then
             for _, obj in pairs(globalLoop.events.key) do -- CALL OBJs KEY EVENTS
-               obj:key(event)
+                obj:key(event)
             end
 
         elseif event[1] == 'char' then
@@ -3195,6 +3199,8 @@ function getOBJSEvents(_table)
     assert(type(_table) == 'table', 'getOBJSEvents: table must be a table, got '..type(_table))
 
     local eventsTable = { -- CREATE RETURN TABLE
+        draw = {},
+        touch = {},
         tick = {},
         key = {},
         char = {},
@@ -3202,6 +3208,12 @@ function getOBJSEvents(_table)
     }
 
     for _, obj in pairs(_table) do -- SORT OBJS IN TABLE
+        if obj.draw then
+            table.insert(eventsTable.draw, 1, obj)
+        end
+        if obj.touch then
+            table.insert(eventsTable.touch, obj)
+        end
         if obj.tick then
             table.insert(eventsTable.tick, obj)
         end
@@ -3238,13 +3250,7 @@ function drawLoopOBJs()
     if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
         globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
         globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
-        for i=#globalLoop.group[globalLoop.selectedGroup].objs, 1, -1 do -- DRAW ALL OBJs
-            local obj = globalLoop.group[globalLoop.selectedGroup].objs[i]
-            obj:draw()
-        end
-
-        for i=#globalLoop.group.LIBPrivate, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
-            local obj = globalLoop.group.LIBPrivate.objs[i]
+        for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
             obj:draw()
         end
 
@@ -3256,13 +3262,7 @@ function drawLoopOBJs()
                 setMonitor(monitorName)
                 globalLoop.callbacks.onMonitorChange(monitorName)
                 globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
-                for i=#globalLoop.group[globalLoop.selectedGroup].objs, 1, -1 do -- DRAW ALL OBJs
-                    local obj = globalLoop.group[globalLoop.selectedGroup].objs[i]
-                    obj:draw()
-                end
-
-                for i=#globalLoop.group.LIBPrivate.objs, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
-                    local obj = globalLoop.group.LIBPrivate.objs[i]
+                for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
                     obj:draw()
                 end
                 
@@ -3271,32 +3271,20 @@ function drawLoopOBJs()
         setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
         if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
     else
-        for i=#globalLoop.group[globalLoop.selectedGroup].objs, 1, -1 do -- DRAW ALL OBJs
-            local obj = globalLoop.group[globalLoop.selectedGroup].objs[i]
-            obj:draw()
-        end
-
-        for i=#globalLoop.group.LIBPrivate.objs, 1, -1 do -- DRAW ALL LIBPRIVATE OBJs
-            local obj = globalLoop.group.LIBPrivate.objs[i]
+        for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
             obj:draw()
         end
     end
 end
 
-function updateLoopOBJs(_x, _y, _event)
-    assert(type(_x) == 'number', 'updateLoopOBJs: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'updateLoopOBJs: y must be a number, got '..type(_y))
-    local _objUpdated = false
+function touchLoopOBJs(_x, _y, _event)
+    assert(type(_x) == 'number', 'touchLoopOBJs: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'touchLoopOBJs: y must be a number, got '..type(_y))
+    local _objAlreadyTouched = false
     
-    for _, obj in pairs(globalLoop.group.LIBPrivate.objs) do -- UPDATE LIBPRIVATE OBJs
-        if obj:update(_x, _y, _event, _objUpdated) then
-            _objUpdated = true
-        end
-    end
-    
-    for _, obj in pairs(globalLoop.group[globalLoop.selectedGroup].objs) do -- UPDATE OBJs
-        if obj:update(_x, _y, _event, _objUpdated) then
-            _objUpdated = true
+    for _, obj in pairs(globalLoop.events.touch) do -- UPDATE OBJs
+        if obj:touch(_x, _y, _event, _objAlreadyTouched) then
+            _objAlreadyTouched = true
         end
     end
 end
@@ -3318,15 +3306,35 @@ if table.maxn(tArgs) > 0 then
         end
     elseif tArgs[1] == 'create' then -- OPTION CREATE
         if tArgs[2] then
-            local _file = fs.open('/'..tArgs[2], 'w') -- OPEN FILE WITH NAME tArgs[1]
-            if _file then -- IF FILE WAS OPENED THEN
-                -- STORE TEXT IN A VARIABLE
-                local _text = "\n-- //AUTO-GENERATED-CODE//\nassert(  -- check if setup was done before, if not return with an error\n    type(settings.get('APLibPath')) == 'string',\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."        settings.get('APLibPath')\n"..'    ).."'.."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"..'"\n)\n\n'.."assert( -- check if API is still there, if not return with an error\n    fs.exists(settings.get('APLibPath')),\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."    	settings.get('APLibPath')\n    ).."..'"'.."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"..'"\n)\n\n'.."os.loadAPI(settings.get('APLibPath')) -- load API with CraftOS's built-in feature\n-- //--//\n\n"
-                _file.write(_text) -- WRITE TEXT IN THE FILE
-                _file.close() -- CLOSE THE FILE
-                print('File succesfully created!')
+            -- STORE TEXT IN A VARIABLE
+            local _text = "\n-- //AUTO-GENERATED-CODE//\nlocal APLibPath = settings.get('APLibPath')\n\nassert(  -- check if setup was done before, if not return with an error\n    type(APLibPath) == 'string',\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."        APLibPath\n"..'    ).."'.."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"..'"\n)\n\n'.."assert( -- check if API is still there, if not return with an error\n    fs.exists(APLibPath),\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."    	APLibPath\n    ).."..'"'.."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"..'"\n)\n\n'.."os.loadAPI(APLibPath) -- load API with CraftOS's built-in feature\n\nlocal APLib = APLibPath:reverse():sub(1, APLibPath:reverse():find('/') - 1):reverse()\nif APLib:sub(#APLib - 3) == '.lua' then APLib = APLib:sub(1, #APLib - 4); end\nlocal APLib = _ENV[APLib]\n-- //--//\n\n"
+            -- STORE PATH IN A VARIABLE
+            local path = '/'..tArgs[2]
+            if fs.exists(path) then
+                print('Are you sure you want to overwrite: '..path)
+                print('Press ENTER to confirm or another key to cancel.')
+                local event = {os.pullEvent('key')}
+                if event[2] == 28 then
+                    local _file = fs.open(path, 'w') -- OPEN FILE WITH NAME tArgs[1]
+                    if _file then -- IF FILE WAS OPENED THEN
+                        _file.write(_text) -- WRITE TEXT IN THE FILE
+                        _file.close() -- CLOSE THE FILE
+                        print('File succesfully created!')
+                    else
+                        print("Couldn't create file.")
+                    end
+                else
+                    print("File wasn't created!")
+                end
             else
-                print("Couldn't create file.")
+                local _file = fs.open(path, 'w') -- OPEN FILE WITH NAME tArgs[1]
+                if _file then -- IF FILE WAS OPENED THEN
+                    _file.write(_text) -- WRITE TEXT IN THE FILE
+                    _file.close() -- CLOSE THE FILE
+                    print('File succesfully created!')
+                else
+                    print("Couldn't create file.")
+                end
             end
         else
             print('You must specify the name of the file you want to create.')
