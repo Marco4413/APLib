@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.20.0',
+    ver = '1.20.1',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -1463,23 +1463,11 @@ function Menu:set(_table, _fillMenu)
 
     local objHeight = math.floor(menu_height / #_table) -- GET OBJs HEIGHT NEEDED TO FILL SCREEN
 
-    local _menuX1, _menuX2, _menuY1, _menuY2
-
-    if self.pos.x1 > self.pos.x2 then -- SORT MENU POS
-        _menuX1 = self.pos.x2
-        _menuX2 = self.pos.x1
-    else
-        _menuX1 = self.pos.x1
-        _menuX2 = self.pos.x2
-    end
-
-    if self.pos.y1 > self.pos.y2 then
-        _menuY1 = self.pos.y2
-        _menuY2 = self.pos.y1
-    else
-        _menuY1 = self.pos.y1
-        _menuY2 = self.pos.y2
-    end
+    -- SORT MENU POS
+    local _menuX1 = math.min(self.pos.x1, self.pos.x2)
+    local _menuX2 = math.max(self.pos.x1, self.pos.x2)
+    local _menuY1 = math.min(self.pos.y1, self.pos.y2)
+    local _menuY2 = math.max(self.pos.y1, self.pos.y2)
 
     for key, obj in pairs(_table) do -- SET OBJ POS TO BE IN THE MENU
         obj.pos.x1 = _menuX1
@@ -1879,21 +1867,10 @@ function Memo:draw()
         local backgroundColor = globalMonitor.getBackgroundColor()
 
         -- SORT Xs AND Ys
-        local _memoX1, _memoX2, _memoY1, _memoY2
-        if self.pos.x1 > self.pos.x2 then
-            _memoX1 = self.pos.x2
-            _memoX2 = self.pos.x1
-        else
-            _memoX1 = self.pos.x1
-            _memoX2 = self.pos.x2
-        end
-        if self.pos.y1 > self.pos.y2 then
-            _memoY1 = self.pos.y2
-            _memoY2 = self.pos.y1
-        else
-            _memoY1 = self.pos.y1
-            _memoY2 = self.pos.y2
-        end
+        local _memoX1 = math.min(self.pos.x1, self.pos.x2)
+        local _memoX2 = math.max(self.pos.x1, self.pos.x2)
+        local _memoY1 = math.min(self.pos.y1, self.pos.y2)
+        local _memoY2 = math.max(self.pos.y1, self.pos.y2)
         
         -- SETTING THINGS TO MEMO SETTINGS
 
@@ -3302,12 +3279,12 @@ if table.maxn(tArgs) > 0 then
             sleep(2)
             os.reboot() -- REBOOTING AFTER SETUP
         else
-            error("Setup failed, shell API not available!")
+            error('Setup failed, shell API not available!')
         end
     elseif tArgs[1] == 'create' then -- OPTION CREATE
         if tArgs[2] then
             -- STORE TEXT IN A VARIABLE
-            local _text = "\n-- //AUTO-GENERATED-CODE//\nlocal APLibPath = settings.get('APLibPath')\n\nassert(  -- check if setup was done before, if not return with an error\n    type(APLibPath) == 'string',\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."        APLibPath\n"..'    ).."'.."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"..'"\n)\n\n'.."assert( -- check if API is still there, if not return with an error\n    fs.exists(APLibPath),\n"..'    "'.."Couldn't open APLib through path: "..'"..tostring(\n'.."    	APLibPath\n    ).."..'"'.."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"..'"\n)\n\n'.."os.loadAPI(APLibPath) -- load API with CraftOS's built-in feature\n\nlocal APLib = APLibPath:reverse():sub(1, APLibPath:reverse():find('/') - 1):reverse()\nif APLib:sub(#APLib - 3) == '.lua' then APLib = APLib:sub(1, #APLib - 4); end\nlocal APLib = _ENV[APLib]\n-- //--//\n\n"
+            local _text = '\n-- //AUTO-GENERATED-CODE//\nlocal APLibPath = settings.get(\'APLibPath\')\n\nassert(  -- check if setup was done before, if not return with an error\n    type(APLibPath) == \'string\',\n    \'Couldn\\\'t open APLib through path: \'..tostring(\n        APLibPath\n    )..\'; probably you haven\\\'t completed Lib setup via \\\'LIBFILE setup\\\' or the setup failed\'\n)\n\nassert( -- check if Lib is still there, if not return with an error\n    fs.exists(APLibPath),\n    \'Couldn\\\'t open APLib through path: \'..tostring(\n      	APLibPath\n    )..\'; remember that if you move the Lib\\\'s folder you must set it up again via \\\'LIBFILE setup\\\'\'\n)\n\nos.loadAPI(APLibPath) -- load Lib with CraftOS\'s built-in feature\n\nAPLibPath = fs.getName(APLibPath)\nif APLibPath:sub(#APLibPath - 3) == \'.lua\' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end\nlocal APLib = _ENV[APLibPath]\nAPLibPath = nil\n-- //--//\n\n'
             -- STORE PATH IN A VARIABLE
             local path = '/'..tArgs[2]
             if fs.exists(path) then
@@ -3321,10 +3298,10 @@ if table.maxn(tArgs) > 0 then
                         _file.close() -- CLOSE THE FILE
                         print('File succesfully created!')
                     else
-                        print("Couldn't create file.")
+                        print('Couldn\'t create file.')
                     end
                 else
-                    print("File wasn't created!")
+                    print('File wasn\'t created!')
                 end
             else
                 local _file = fs.open(path, 'w') -- OPEN FILE WITH NAME tArgs[1]
@@ -3333,7 +3310,7 @@ if table.maxn(tArgs) > 0 then
                     _file.close() -- CLOSE THE FILE
                     print('File succesfully created!')
                 else
-                    print("Couldn't create file.")
+                    print('Couldn\'t create file.')
                 end
             end
         else

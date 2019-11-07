@@ -4,23 +4,24 @@ local APLibPath = settings.get('APLibPath')
 
 assert(  -- check if setup was done before, if not return with an error
     type(APLibPath) == 'string',
-    "Couldn't open APLib through path: "..tostring(
+    'Couldn\'t open APLib through path: '..tostring(
         APLibPath
-    ).."; probably you haven't completed Lib setup via 'LIBFILE setup' or the setup failed"
+    )..'; probably you haven\'t completed Lib setup via \'LIBFILE setup\' or the setup failed'
 )
 
-assert( -- check if API is still there, if not return with an error
+assert( -- check if Lib is still there, if not return with an error
     fs.exists(APLibPath),
-    "Couldn't open APLib through path: "..tostring(
+    'Couldn\'t open APLib through path: '..tostring(
     	APLibPath
-    ).."; remember that if you move the API's folder you must set it up again via 'LIBFILE setup'"
+    )..'; remember that if you move the Lib\'s folder you must set it up again via \'LIBFILE setup\''
 )
 
-os.loadAPI(APLibPath) -- load API with CraftOS's built-in feature
+os.loadAPI(APLibPath) -- load Lib with CraftOS's built-in feature
 
-local APLib = APLibPath:reverse():sub(1, APLibPath:reverse():find('/') - 1):reverse()
-if APLib:sub(#APLib - 3) == '.lua' then APLib = APLib:sub(1, #APLib - 4); end
-local APLib = _ENV[APLib]
+APLibPath = fs.getName(APLibPath)
+if APLibPath:sub(#APLibPath - 3) == '.lua' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end
+local APLib = _ENV[APLibPath]
+APLibPath = nil
 -- //--//
 
 -- PARAMS
