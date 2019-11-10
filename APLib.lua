@@ -1,10 +1,11 @@
 
 info = {
-    ver = '1.20.1',
+    ver = '1.21.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
 
+--MONITOR
 globalMonitor = term
 globalMonitorName = 'term'
 globalMonitorGroup = {
@@ -12,6 +13,80 @@ globalMonitorGroup = {
     list = {}
 }
 globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
+
+globalMonitorBuffer = {
+    enabled = false,
+    backgroundColor = globalMonitor.getBackgroundColor(),
+    pixels = {},
+
+    clear = function () globalMonitorBuffer.pixels = {}; end,
+    write = function (x, y, text, fg, bg, transparentBG)
+        assert(type(x) == 'number', 'globalMonitorBuffer.write: x must be a number, got '..type(x))
+        assert(type(y) == 'number', 'globalMonitorBuffer.write: y must be a number, got '..type(y))
+        assert(type(fg) == 'number', 'globalMonitorBuffer.write: fg must be a number, got '..type(fg))
+        assert(type(bg) == 'number', 'globalMonitorBuffer.write: bg must be a number, got '..type(bg))
+
+        y = tostring(y)
+
+        if not globalMonitorBuffer.pixels[y] then
+            globalMonitorBuffer.pixels[y] = {}
+        end
+
+        text = tostring(text)
+
+        for char in text:gmatch('.') do
+            local pixel = globalMonitorBuffer.pixels[y][tostring(x)]
+            if transparentBG then
+                if pixel then
+                    if pixel.bg then
+                        bg = pixel.bg
+                    end
+                end
+            end
+            globalMonitorBuffer.pixels[y][tostring(x)] = {
+                char = char,
+                fg = fg,
+                bg = bg
+            }
+            x = x + 1
+        end
+    end,
+
+    draw = function ()
+
+        local oldCursorPosX, oldCursorPosY = globalMonitor.getCursorPos()
+        local oldTextColor = globalMonitor.getTextColor()
+        local oldBackgroundColor = globalMonitor.getBackgroundColor()
+
+        for y=1, globalMonitorHeight do
+            local row = globalMonitorBuffer.pixels[tostring(y)]
+            for x=1, globalMonitorWidth do
+                globalMonitor.setCursorPos(x, y)
+                if row then
+                    local pixel = row[tostring(x)]
+                    if pixel then
+                        globalMonitor.setTextColor(pixel.fg)
+                        globalMonitor.setBackgroundColor(pixel.bg)
+                        globalMonitor.write(pixel.char)
+                    else
+                        globalMonitor.setBackgroundColor(globalMonitorBuffer.backgroundColor)
+                        globalMonitor.write(' ')
+                    end
+                else
+                    globalMonitor.setBackgroundColor(globalMonitorBuffer.backgroundColor)
+                    globalMonitor.write(' ')
+                end
+            end
+        end
+
+
+        globalMonitor.setCursorPos(oldCursorPosX, oldCursorPosY)
+        globalMonitor.setTextColor(oldTextColor)
+        globalMonitor.setBackgroundColor(oldBackgroundColor)
+        
+    end
+
+}
 
 --DRAWING
 globalColor = colors.white
@@ -249,6 +324,7 @@ end
 function bClear()
     globalMonitor.clear()
     globalMonitor.setCursorPos(1, 1)
+    if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
     globalCallbacks.onBClear()
 
     if not APLWD.isReceiver and APLWD.cacheWritable then
@@ -559,7 +635,12 @@ end
 
 function setBackground(_color)
     assert(type(_color) == 'number', 'setBackgroundColor: color must be a number, got '..type(_color))
-    globalMonitor.setBackgroundColor(_color) --SET BG COLOR TO COLOR
+
+    if globalMonitorBuffer.enabled then
+        globalMonitorBuffer.backgroundColor = _color
+    else
+        globalMonitor.setBackgroundColor(_color) --SET BG COLOR TO COLOR
+    end
 
     local wasCacheWritable = APLWD.cacheWritable
     if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
@@ -628,8 +709,12 @@ function text(_x, _y, _text)
     
     for key, value in pairs(lines) do
         
-        globalMonitor.setCursorPos(_x, _y + key - 1)
-        globalMonitor.write(value)
+        if globalMonitorBuffer.enabled then
+            globalMonitorBuffer.write(_x, _y + key - 1, value, globalTextColor, globalBackgroundTextColor)
+        else
+            globalMonitor.setCursorPos(_x, _y + key - 1)
+            globalMonitor.write(value)
+        end
 
     end
 
@@ -660,10 +745,17 @@ function point(_x, _y)
     assert(type(_x) == 'number', 'Point: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Point: y must be a number, got '..type(_y))
     local oldCursorPosX, oldCursorPosY = globalMonitor.getCursorPos() --PUTS CURSOR ON X, Y
-    globalMonitor.setCursorPos(_x, _y)
     local oldBackgroundColor = globalMonitor.getBackgroundColor() --CHANGES THE COLOR OF THE POINT
+
     globalMonitor.setBackgroundColor(globalColor)
-    globalMonitor.write(' ') --DRAWS THE POINT
+
+    if globalMonitorBuffer.enabled then
+        globalMonitorBuffer.write(_x, _y, ' ', globalColor, globalColor)
+    else
+        globalMonitor.setCursorPos(_x, _y)
+        globalMonitor.write(' ') --DRAWS THE POINT
+    end
+
     globalMonitor.setCursorPos(oldCursorPosX, oldCursorPosY) --RESTORES OLD CURSOR POS
     globalMonitor.setBackgroundColor(oldBackgroundColor) --RESTORES OLD COLOR
     
@@ -3230,6 +3322,7 @@ function drawLoopOBJs()
         for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
             obj:draw()
         end
+        if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); globalMonitorBuffer.clear(); end
 
         local wasCacheWritable = APLWD.cacheWritable
         if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
@@ -3242,6 +3335,7 @@ function drawLoopOBJs()
                 for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
                     obj:draw()
                 end
+                if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); globalMonitorBuffer.clear(); end
                 
             end
         end
@@ -3251,6 +3345,7 @@ function drawLoopOBJs()
         for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
             obj:draw()
         end
+        if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); globalMonitorBuffer.clear(); end
     end
 end
 
