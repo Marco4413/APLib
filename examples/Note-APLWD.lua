@@ -552,6 +552,13 @@ APLib.setLoopCallback(
 )
 
 APLib.setLoopCallback(
+    APLib.event.loop.onClock,
+    function ()
+        APLib.setBackgroundMonitorGroup(bgColor)
+    end
+)
+
+APLib.setLoopCallback(
     APLib.event.loop.onStop,
     function ()
         APLib.setRenderer(APLib.renderEngine.classic)

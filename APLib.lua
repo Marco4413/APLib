@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.22.0',
+    ver = '1.22.1',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -354,9 +354,12 @@ function setGlobalCallback(_event, _callback)
 end
 
 function bClear()
-    globalMonitor.clear()
-    globalMonitor.setCursorPos(1, 1)
-    if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
+    if globalMonitorBuffer.enabled then
+        globalMonitorBuffer.clear()
+    else
+        globalMonitor.clear()
+        globalMonitor.setCursorPos(1, 1)
+    end
     globalCallbacks.onBClear()
 
     if not APLWD.isReceiver and APLWD.cacheWritable then
@@ -592,7 +595,7 @@ APLWD.drawCache = function ()
 
                     setTextColor(value.colors.textColor)
                     setBackgroundTextColor(value.colors.backgroundTextColor)
-                    text(value.pos.x, value.pos.y, value.text)
+                    text(value.pos.x, value.pos.y, value.text, value.colors.transparentBG)
 
                     setTextColor(oldTextColor)
                     setBackgroundTextColor(oldBackgroundTextColor)
@@ -620,24 +623,23 @@ APLWD.drawCache = function ()
         end
 
         if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
-            if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
             if APLWD.clearOnDraw then bClear(); end
             drawCache()
             if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
             local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
             for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
                 if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
-                    if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
                     setMonitor(monitorName)
                     globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
-                    if APLWD.clearOnDraw then bClear(); end
-                    drawCache()
-                    if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
+                    if globalMonitorBuffer.enabled then
+                        globalMonitorBuffer.draw()
+                    else
+                        drawCache()
+                    end
                 end
             end
             setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
         else
-            if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
             if APLWD.clearOnDraw then bClear(); end
             drawCache()
             if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
@@ -766,7 +768,8 @@ function text(_x, _y, _text, _transparentBG)
                 },
                 colors = {
                     textColor = globalTextColor,
-                    backgroundTextColor = globalBackgroundTextColor
+                    backgroundTextColor = globalBackgroundTextColor,
+                    transparentBG = _transparentBG
                 }
             }
         )
@@ -3371,14 +3374,16 @@ function drawLoopOBJs()
         local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
         for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
-                if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
                 setMonitor(monitorName)
                 globalLoop.callbacks.onMonitorChange(monitorName)
                 globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
-                for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
-                    obj:draw()
+                if globalMonitorBuffer.enabled then
+                    globalMonitorBuffer.draw()
+                else
+                    for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
+                        obj:draw()
+                    end
                 end
-                if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
             end
         end
         setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
