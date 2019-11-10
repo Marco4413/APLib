@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.21.0',
+    ver = '1.22.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -14,79 +14,104 @@ globalMonitorGroup = {
 }
 globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
 
-globalMonitorBuffer = {
+globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
     enabled = false,
-    backgroundColor = globalMonitor.getBackgroundColor(),
     pixels = {},
 
-    clear = function () globalMonitorBuffer.pixels = {}; end,
+    clear = function () globalMonitorBuffer.pixels = {}; end, -- CLEAR PIXELS TABLE
     write = function (x, y, text, fg, bg, transparentBG)
         assert(type(x) == 'number', 'globalMonitorBuffer.write: x must be a number, got '..type(x))
         assert(type(y) == 'number', 'globalMonitorBuffer.write: y must be a number, got '..type(y))
         assert(type(fg) == 'number', 'globalMonitorBuffer.write: fg must be a number, got '..type(fg))
-        assert(type(bg) == 'number', 'globalMonitorBuffer.write: bg must be a number, got '..type(bg))
+        assert(type(bg) == 'number' or transparentBG, 'globalMonitorBuffer.write: bg must be a number, got '..type(bg))
 
         y = tostring(y)
 
+        -- If row doesn't exist then create it
         if not globalMonitorBuffer.pixels[y] then
             globalMonitorBuffer.pixels[y] = {}
         end
 
         text = tostring(text)
 
+        -- For every character in text do
         for char in text:gmatch('.') do
+            -- Store current pixel to a variable
             local pixel = globalMonitorBuffer.pixels[y][tostring(x)]
+            
+            local thisBG = bg 
+            -- If it needs to be transparent then make thisBG the same color of the pixel that the char is on
             if transparentBG then
                 if pixel then
-                    if pixel.bg then
-                        bg = pixel.bg
-                    end
+                    thisBG = pixel.bg
+                else
+                    thisBG = globalMonitor.getBackgroundColor()
                 end
             end
+            -- Put new pixel in table
             globalMonitorBuffer.pixels[y][tostring(x)] = {
                 char = char,
                 fg = fg,
-                bg = bg
+                bg = thisBG
             }
             x = x + 1
         end
     end,
 
     draw = function ()
-
+        -- Save current globalMonitor settings
         local oldCursorPosX, oldCursorPosY = globalMonitor.getCursorPos()
         local oldTextColor = globalMonitor.getTextColor()
         local oldBackgroundColor = globalMonitor.getBackgroundColor()
 
+        -- For each row of the monitor do
         for y=1, globalMonitorHeight do
+            -- Store row table
             local row = globalMonitorBuffer.pixels[tostring(y)]
+            -- For each pixel in the row do
             for x=1, globalMonitorWidth do
+                -- Set monitor's cursor to current pixel
                 globalMonitor.setCursorPos(x, y)
+                -- If the row has at least one custom pixel then
                 if row then
+                    -- Store pixel into a variable
                     local pixel = row[tostring(x)]
+                    -- If the pixel is a custom one then
                     if pixel then
+                        -- Print the custom pixel with its settings
                         globalMonitor.setTextColor(pixel.fg)
                         globalMonitor.setBackgroundColor(pixel.bg)
                         globalMonitor.write(pixel.char)
                     else
-                        globalMonitor.setBackgroundColor(globalMonitorBuffer.backgroundColor)
+                        -- Print background
+                        globalMonitor.setBackgroundColor(oldBackgroundColor)
                         globalMonitor.write(' ')
                     end
                 else
-                    globalMonitor.setBackgroundColor(globalMonitorBuffer.backgroundColor)
-                    globalMonitor.write(' ')
+                    -- Print the row with monitor's background color
+                    globalMonitor.setBackgroundColor(oldBackgroundColor)
+                    globalMonitor.write(string.rep(' ', globalMonitorWidth))
+                    break
                 end
             end
         end
 
-
+        -- Restore old globalMonitor settings
         globalMonitor.setCursorPos(oldCursorPosX, oldCursorPosY)
         globalMonitor.setTextColor(oldTextColor)
         globalMonitor.setBackgroundColor(oldBackgroundColor)
-        
     end
-
 }
+
+function setRenderer(_type) -- Sets the renderer for the library
+    assert(type(_type) == 'number', 'setRenderer: type must be a number, got '..type(_type))
+
+    if _type == 1 then -- CLASSIC RENDERER
+        globalMonitorBuffer.enabled = false
+    elseif _type == 2 then -- EXPERIMENTAL RENDERER
+        globalMonitorBuffer.enabled = true
+    end
+end
 
 --DRAWING
 globalColor = colors.white
@@ -115,6 +140,7 @@ globalLoop = {
     },
     callbacks = {
         onInit = function() end,
+        onStop = function() end,
         onClock = function() end,
         onEvent = function() end,
         onTimer = function() end,
@@ -163,6 +189,11 @@ globalCallbacks = {
 }
 
 --HELPERS
+renderEngine = {
+    classic = 1,
+    experimental = 2
+}
+
 rectangleTypes = {filled = 1, hollow = 2, checker = 3}
 
 event = {
@@ -242,10 +273,11 @@ event = {
             onUnset = 6
         },
         onInit = 1,
-        onClock = 2,
-        onEvent = 3,
-        onTimer = 4,
-        onMonitorChange = 5
+        onStop = 2,
+        onClock = 3,
+        onEvent = 4,
+        onTimer = 5,
+        onMonitorChange = 6
     }
 }
 
@@ -339,7 +371,6 @@ end
 
 function bClearMonitorGroup()
     if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
-        globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
         globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
         
         bClear()
@@ -350,7 +381,6 @@ function bClearMonitorGroup()
         for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
                 setMonitor(monitorName)
-                globalLoop.callbacks.onMonitorChange(monitorName)
                 globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
                 bClear()
             end
@@ -590,24 +620,27 @@ APLWD.drawCache = function ()
         end
 
         if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
-            globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
-            globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
+            if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
             if APLWD.clearOnDraw then bClear(); end
             drawCache()
+            if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
             local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
             for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
                 if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
+                    if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
                     setMonitor(monitorName)
-                    globalLoop.callbacks.onMonitorChange(monitorName)
                     globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
                     if APLWD.clearOnDraw then bClear(); end
                     drawCache()
+                    if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
                 end
             end
             setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
         else
+            if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
             if APLWD.clearOnDraw then bClear(); end
             drawCache()
+            if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
         end
 
         APLWD.clearCache()
@@ -637,17 +670,18 @@ function setBackground(_color)
     assert(type(_color) == 'number', 'setBackgroundColor: color must be a number, got '..type(_color))
 
     if globalMonitorBuffer.enabled then
-        globalMonitorBuffer.backgroundColor = _color
+        globalMonitor.setBackgroundColor(_color) --SET BG COLOR TO COLOR
     else
         globalMonitor.setBackgroundColor(_color) --SET BG COLOR TO COLOR
+
+        local wasCacheWritable = APLWD.cacheWritable
+        if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
+    
+        bClear() --CLEARS MONITOR
+    
+        if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
     end
 
-    local wasCacheWritable = APLWD.cacheWritable
-    if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
-
-    bClear() --CLEARS MONITOR
-
-    if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
 
     if not APLWD.isReceiver and APLWD.cacheWritable then
         table.insert(
@@ -664,7 +698,6 @@ function setBackgroundMonitorGroup(_color)
     assert(type(_color) == 'number', 'setBackgroundMonitorGroup: color must be a number, got '..type(_color))
     
     if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
-        globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
         globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
         
         setBackground(_color)
@@ -675,7 +708,6 @@ function setBackgroundMonitorGroup(_color)
         for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
                 setMonitor(monitorName)
-                globalLoop.callbacks.onMonitorChange(monitorName)
                 globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
                 setBackground(_color)
             end
@@ -692,7 +724,7 @@ function setRectangleType(_type)
     globalRectangleType = _type
 end
 
-function text(_x, _y, _text)
+function text(_x, _y, _text, _transparentBG)
     assert(type(_x) == 'number', 'Text: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Text: y must be a number, got '..type(_y))
     
@@ -710,7 +742,7 @@ function text(_x, _y, _text)
     for key, value in pairs(lines) do
         
         if globalMonitorBuffer.enabled then
-            globalMonitorBuffer.write(_x, _y + key - 1, value, globalTextColor, globalBackgroundTextColor)
+            globalMonitorBuffer.write(_x, _y + key - 1, value, globalTextColor, globalBackgroundTextColor, _transparentBG)
         else
             globalMonitor.setCursorPos(_x, _y + key - 1)
             globalMonitor.write(value)
@@ -1098,7 +1130,7 @@ Rectangle.__index = Rectangle
 
 Header = {}
 
-function Header.new(_y, _text, _textColor, _backgroundTextColor)
+function Header.new(_y, _text, _textColor, _backgroundTextColor, _transparentBG)
 
     assert(type(_y) == 'number', 'Header.new: y must be a number, got '..type(_y))
 
@@ -1122,7 +1154,8 @@ function Header.new(_y, _text, _textColor, _backgroundTextColor)
         },
         colors = {
             textColor = _textColor,
-            backgroundTextColor = _backgroundTextColor
+            backgroundTextColor = _backgroundTextColor,
+            transparentBG = _transparentBG
         },
         callbacks = {
             onDraw = function() end,
@@ -1156,7 +1189,7 @@ function Header:draw()
         local lines = stringSplit(self.text, '\n')
         
         self.pos.x = math.floor((globalMonitorWidth - string.len(lines[1]) + 1) / 2)
-        text(self.pos.x, self.pos.y, lines[1])
+        text(self.pos.x, self.pos.y, lines[1], self.colors.transparentBG)
         
         table.remove(lines, 1)
         
@@ -1219,7 +1252,7 @@ Header.__index = Header
 
 Label = {}
 
-function Label.new(_x, _y, _text, _textColor, _backgroundTextColor)
+function Label.new(_x, _y, _text, _textColor, _backgroundTextColor, _transparentBG)
 
     assert(type(_x) == 'number', 'Label.new: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Label.new: y must be a number, got '..type(_y))
@@ -1244,7 +1277,8 @@ function Label.new(_x, _y, _text, _textColor, _backgroundTextColor)
         },
         colors = {
             textColor = _textColor,
-            backgroundTextColor = _backgroundTextColor
+            backgroundTextColor = _backgroundTextColor,
+            transparentBG = _transparentBG
         },
         callbacks = {
             onDraw = function() end,
@@ -1264,7 +1298,7 @@ function Label:draw()
         local oldBackgroundTextColor = globalBackgroundTextColor
 
         local backgroundColor = globalMonitor.getBackgroundColor()
-        
+
         --SETTING THINGS TO LABEL SETTINGS
         setTextColor(self.colors.textColor)
         if self.colors.backgroundTextColor then
@@ -1274,7 +1308,7 @@ function Label:draw()
         end
 
         --DRAWING LABEL
-        text(self.pos.x, self.pos.y, self.text)
+        text(self.pos.x, self.pos.y, self.text, self.colors.transparentBG)
 
         --REVERTING ALL CHANGES MADE BEFORE
         setTextColor(oldTextColor)
@@ -2401,6 +2435,9 @@ function Memo:edit(_event)
                     break
                 end
                 self:draw()
+                if globalMonitorBuffer.enabled then
+                    globalMonitorBuffer.draw()
+                end
 
                 if self.cursor.blink.enabled then
                     if os.clock() >= self.cursor.blink.clock + self.cursor.blink.speed then -- BLINK :)
@@ -2929,8 +2966,8 @@ OBJGroup.__index = OBJGroup
 
 -- STATS LABELS
 
-globalLoop.stats.FPS = Label.new(0, 0, '0FPS')
-globalLoop.stats.EPS = Label.new(0, 0, '0EPS')
+globalLoop.stats.FPS = Label.new(0, 0, '0FPS', nil, nil, true)
+globalLoop.stats.EPS = Label.new(0, 0, '0EPS', nil, nil, true)
 
 globalLoop.stats.FPS.hidden = true
 globalLoop.stats.EPS.hidden = true
@@ -2983,12 +3020,14 @@ function setLoopCallback(_event, _callback)
     if _event == 1 then
         globalLoop.callbacks.onInit = _callback
     elseif _event == 2 then
-        globalLoop.callbacks.onClock = _callback
+        globalLoop.callbacks.onStop = _callback
     elseif _event == 3 then
-        globalLoop.callbacks.onEvent = _callback
+        globalLoop.callbacks.onClock = _callback
     elseif _event == 4 then
-        globalLoop.callbacks.onTimer = _callback
+        globalLoop.callbacks.onEvent = _callback
     elseif _event == 5 then
+        globalLoop.callbacks.onTimer = _callback
+    elseif _event == 6 then
         globalLoop.callbacks.onMonitorChange = _callback
     end
 end
@@ -3106,6 +3145,8 @@ end
 
 function stopLoop()
     globalLoop.enabled = false --STOP LOOP
+
+    globalLoop.callbacks.onStop()
     
     globalLoop.events = {
         draw = {},
@@ -3210,7 +3251,7 @@ function loop()
                     APLWD.clearCache()
                 end
 
-                if globalLoop.autoClear then
+                if globalLoop.autoClear and not globalMonitorBuffer.enabled then
                     bClearMonitorGroup()
                 end
                 globalLoop.callbacks.onClock(event) -- CLOCK CALLBACK
@@ -3235,7 +3276,7 @@ function loop()
                 APLWD.clearCache()
             end
             
-            if globalLoop.autoClear then
+            if globalLoop.autoClear and not globalMonitorBuffer.enabled then
                 bClearMonitorGroup()
             end
             globalLoop.callbacks.onEvent(event) -- EVENT CALLBACK
@@ -3317,35 +3358,37 @@ end
 
 function drawLoopOBJs()
     if globalMonitorGroup.enabled then -- CHECKS IF MONITORGROUP IS ENABLED
+        if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
         globalLoop.callbacks.onMonitorChange(monitorName) -- CALLS onMonitorChange EVENT
         globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
         for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
             obj:draw()
         end
-        if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); globalMonitorBuffer.clear(); end
+        if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
 
         local wasCacheWritable = APLWD.cacheWritable
         if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = false; end -- DISABLE APLWD CACHE WRITE
         local oldMonitor = globalMonitorName -- SAVES ORIGINAL MONITOR
         for _, monitorName in pairs(globalMonitorGroup.list) do -- LOOPS THROUGH ALL MONITORS
             if monitorName ~= oldMonitor then -- DRAW ONLY ON MONITOR THAT WASN'T THE GLOBAL ONE
+                if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
                 setMonitor(monitorName)
                 globalLoop.callbacks.onMonitorChange(monitorName)
                 globalLoop.group[globalLoop.selectedGroup].callbacks.onMonitorChange(monitorName)
                 for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
                     obj:draw()
                 end
-                if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); globalMonitorBuffer.clear(); end
-                
+                if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
             end
         end
         setMonitor(oldMonitor) -- RESETS TO ORIGINAL MONITOR
         if APLWD.enabled and wasCacheWritable then APLWD.cacheWritable = true; end -- ENABLE APLWD CACHE WRITE
     else
+        if globalMonitorBuffer.enabled then globalMonitorBuffer.clear(); end
         for key, obj in pairs(globalLoop.events.draw) do -- DRAW ALL OBJs
             obj:draw()
         end
-        if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); globalMonitorBuffer.clear(); end
+        if globalMonitorBuffer.enabled then globalMonitorBuffer.draw(); end
     end
 end
 
