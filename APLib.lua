@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.20.1',
+    ver = '1.21.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -191,6 +191,29 @@ function stringSplit(_string, _separator)
     end
 
     return _words
+end
+
+function tablesAreEqual(t1, t2)
+    assert(type(t1) == 'table', 'tablesAreEqual: t1 must be a table, got '..type(t1))
+    assert(type(t2) == 'table', 'tablesAreEqual: t2 must be a table, got '..type(t2))
+    local function internalCheck(t1, t2, check2)
+        -- Check if they have the same size
+        if #t1 ~= #t2 then return false; end
+        -- Loop through every value and check if they're the same
+        for key, value in pairs(t1) do
+            -- If both values are a table then check them
+            if type(value) == 'table' and type(t2[key]) == 'table' then
+                internalCheck(value, t2[key])
+            -- If one value isn't the same then return false
+            elseif value ~= t2[key] then
+                return false
+            end
+        end
+        -- If nothing happened in the loop then they're equal, so return true
+        return check2 or internalCheck(t2, t1, true)
+    end
+
+    return internalCheck(t1, t2)
 end
 
 function tableHasKey(_table, _key)

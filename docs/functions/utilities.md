@@ -13,11 +13,21 @@ These functions are **utilities that help you to do normal stuff** (like table c
 
 Returns an Array of substrings that are splitted by the specified `separator`.
 
+## tablesAreEqual
+
+| argument | type  | info                                |
+| -------- | ----- | ----------------------------------- |
+| t1       | Table | One of the tables you want to check |
+| t2       | Table | The other table you want to check   |
+
+Returns false if `t1` and `t2` aren't equal.<br>
+Returns true if `t1` and `t2` are equal.
+
 ## tableHasKey
 
 | argument | type             | info                                         |
 | -------- | ---------------- | -------------------------------------------- |
-| table    | Table            | The table where you want  to search the key  |
+| table    | Table            | The table where you want to search the key   |
 | key      | String or Number | The key that you want to search in the table |
 
 Returns false if the `table` doesn't have the `key`.<br>
