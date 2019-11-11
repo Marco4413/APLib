@@ -473,7 +473,7 @@ APLib.setLoopGroupCallback(
     'main',
     APLib.event.loop.group.onSet,
     function (self, lastGroup)
-        APLib.drawOnLoopClock()
+        APLib.setLoopClockSpeed(0.1)
     end
 )
 
@@ -498,7 +498,7 @@ APLib.setLoopGroupCallback(
     'owp',
     APLib.event.loop.group.onSet,
     function (self, lastGroup)
-        APLib.drawOnLoopEvent()
+        APLib.setLoopClockSpeed(0.016)
     end
 )
 

@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.22.1',
+    ver = '1.22.2',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -16,9 +16,17 @@ globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
 
 globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
     enabled = false,
-    pixels = {},
+    pixels = {
+        lastFrame = {},
+        newFrame = {}
+    },
 
-    clear = function () globalMonitorBuffer.pixels = {}; end, -- CLEAR PIXELS TABLE
+    clear = function () -- CLEAR PIXELS TABLE
+        
+        globalMonitorBuffer.pixels.newFrame = {}
+    
+    end,
+
     write = function (x, y, text, fg, bg, transparentBG)
         assert(type(x) == 'number', 'globalMonitorBuffer.write: x must be a number, got '..type(x))
         assert(type(y) == 'number', 'globalMonitorBuffer.write: y must be a number, got '..type(y))
@@ -28,8 +36,8 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
         y = tostring(y)
 
         -- If row doesn't exist then create it
-        if not globalMonitorBuffer.pixels[y] then
-            globalMonitorBuffer.pixels[y] = {}
+        if not globalMonitorBuffer.pixels.newFrame[y] then
+            globalMonitorBuffer.pixels.newFrame[y] = {}
         end
 
         text = tostring(text)
@@ -37,7 +45,7 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
         -- For every character in text do
         for char in text:gmatch('.') do
             -- Store current pixel to a variable
-            local pixel = globalMonitorBuffer.pixels[y][tostring(x)]
+            local pixel = globalMonitorBuffer.pixels.newFrame[y][tostring(x)]
             
             local thisBG = bg 
             -- If it needs to be transparent then make thisBG the same color of the pixel that the char is on
@@ -49,7 +57,7 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
                 end
             end
             -- Put new pixel in table
-            globalMonitorBuffer.pixels[y][tostring(x)] = {
+            globalMonitorBuffer.pixels.newFrame[y][tostring(x)] = {
                 char = char,
                 fg = fg,
                 bg = thisBG
@@ -67,7 +75,7 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
         -- For each row of the monitor do
         for y=1, globalMonitorHeight do
             -- Store row table
-            local row = globalMonitorBuffer.pixels[tostring(y)]
+            local row = globalMonitorBuffer.pixels.newFrame[tostring(y)]
             -- For each pixel in the row do
             for x=1, globalMonitorWidth do
                 -- Set monitor's cursor to current pixel
@@ -100,6 +108,8 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
         globalMonitor.setCursorPos(oldCursorPosX, oldCursorPosY)
         globalMonitor.setTextColor(oldTextColor)
         globalMonitor.setBackgroundColor(oldBackgroundColor)
+
+        globalMonitorBuffer.pixels.lastFrame = globalMonitorBuffer.pixels.newFrame
     end
 }
 
