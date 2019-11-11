@@ -118,6 +118,7 @@ local function CompactNotes(_memo)
     end
     _memo:setCursorPos(1, 1)
     _memo:draw()
+    APLib.globalMonitorBuffer.draw()
 end
 
 local function OpenNotes(_memo, FileName)
@@ -208,6 +209,7 @@ mbNewOpen:setCallback(
     APLib.event.button.onPress,
     function (self, event)
         self:draw()
+        APLib.globalMonitorBuffer.draw()
 
         mbmInput.pos.x1 = self.pos.x2 + 1
         mbmInput.pos.x2 = self.pos.x2 + 1 + 6
@@ -229,9 +231,11 @@ mbSave:setCallback(
     function (self, event)
         if self.state then
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             sleep(0.5)
             self.state = false
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             SaveNotes(mMemo, CurrFile)
         end
     end
@@ -241,6 +245,7 @@ mbSaveAs:setCallback(
     APLib.event.button.onPress,
     function (self, event)
         self:draw()
+        APLib.globalMonitorBuffer.draw()
 
         mbmInput.pos.x1 = self.pos.x2 + 1
         mbmInput.pos.x2 = self.pos.x2 + 1 + 6
@@ -263,6 +268,7 @@ mbGoto:setCallback(
     APLib.event.button.onPress,
     function (self, event)
         self:draw()
+        APLib.globalMonitorBuffer.draw()
 
         mbmInput.pos.x1 = self.pos.x2 + 1
         mbmInput.pos.x2 = self.pos.x2 + 1 + 4
@@ -286,9 +292,11 @@ mbRun:setCallback(
     function (self, event)
         if self.state then
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             sleep(0.5)
             self.state = false
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             RunNotes()
         end
     end
@@ -299,9 +307,11 @@ mbExit:setCallback(
     function (self, event)
         if self.state then
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             sleep(0.5)
             self.state = false
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             APLib.stopLoop()
             APLib.resetLoopSettings()
         end
@@ -320,6 +330,7 @@ owpbAccept:setCallback(
             end
             owpFileName = nil
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             sleep(0.5)
             APLib.setLoopGroup('main')
             self.state = false
@@ -333,6 +344,7 @@ owpbReject:setCallback(
         if owpFileName then
             owpFileName = nil
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             sleep(0.5)
             APLib.setLoopGroup('main')
             self.state = false
@@ -347,9 +359,11 @@ bCompact:setCallback(
     function (self, event)
         if self.state then
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             sleep(0.5)
             self.state = false
             self:draw()
+            APLib.globalMonitorBuffer.draw()
             CompactNotes(mMemo)
         end
     end
@@ -369,6 +383,7 @@ mMemo:setCallback(
 
             mbFile.state = false
             mbFile:draw()
+            APLib.globalMonitorBuffer.draw()
         end
     end
 )
@@ -392,6 +407,7 @@ mMemo:setCallback(
         lLines:draw()
         lCursorPos.text = 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')'
         lCursorPos:draw()
+        APLib.globalMonitorBuffer.draw()
     end
 )
 
@@ -424,6 +440,7 @@ APLib.setLoopGroupCallback(
         lCursorPos.text = 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')'
         lLines:draw()
         lCursorPos:draw()
+        APLib.globalMonitorBuffer.draw()
 
         lPath.text = CurrFile
     end
@@ -447,8 +464,7 @@ APLib.setLoopGroupCallback(
     'main',
     APLib.event.loop.group.onSet,
     function (self, lastGroup)
-        APLib.drawOnLoopClock()
-        APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.black
+        APLib.setLoopClockSpeed(0.1)
     end
 )
 
@@ -473,8 +489,7 @@ APLib.setLoopGroupCallback(
     'owp',
     APLib.event.loop.group.onSet,
     function (self, lastGroup)
-        APLib.drawOnLoopEvent()
-        APLib.globalLoop.stats.FPS.colors.backgroundTextColor = colors.gray
+        APLib.setLoopClockSpeed(0.016)
     end
 )
 
@@ -523,18 +538,19 @@ end
 APLib.setLoopCallback(
     APLib.event.loop.onInit,
     function ()
-        APLib.setBackground(bgColor)
+        APLib.setRenderer(APLib.renderEngine.experimental)
     end
 )
 
 APLib.setLoopCallback(
-    APLib.event.loop.onClock,
-    function (event)
-        APLib.setBackgroundMonitorGroup(bgColor)
+    APLib.event.loop.onStop,
+    function ()
+        APLib.setRenderer(APLib.renderEngine.classic)
     end
 )
 
 APLib.setMonitor('term')
+APLib.setBackgroundMonitorGroup(bgColor)
 
 APLib.setLoopClockSpeed(0.1)
 

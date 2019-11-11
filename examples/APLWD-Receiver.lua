@@ -35,14 +35,64 @@ end
 APLib.APLWD.enable(true)
 APLib.APLWD.connect(tArgs[1], tArgs[2])
 
-if tArgs[3] == 'multi' then
-    table.remove(tArgs, 1)
-    table.remove(tArgs, 1)
-    table.remove(tArgs, 1)
-    APLib.setMonitorGroup(tArgs)
+table.remove(tArgs, 1)
+table.remove(tArgs, 1)
+
+local hasMultiOption, multiOptionKey = APLib.tableHasValue(tArgs, 'multi')
+local hasRenderEngineOption, renderEngineOptionKey = APLib.tableHasValue(tArgs, 'renderer')
+
+if hasMultiOption then
+
+    local monitors = {}
+
+    if hasRenderEngineOption then
+        if multiOptionKey < renderEngineOptionKey then
+            for key=multiOptionKey + 1, renderEngineOptionKey - 1 do
+                table.insert(monitors, tArgs[key])
+            end
+        else
+            for key=multiOptionKey + 1, #tArgs do
+                table.insert(monitors, tArgs[key])
+            end
+        end
+
+        local renderEngine = tArgs[renderEngineOptionKey + 1]
+        if tArgs[renderEngineOptionKey + 1] then
+            if renderEngine == 'experimental' then
+                APLib.setRenderer(APLib.renderEngine.experimental)
+            end
+        end
+    else
+        table.remove(tArgs, 1)
+        monitors = tArgs
+    end
+
+    APLib.setMonitorGroup(monitors)
     APLib.setMonitorGroupEnabled(true)
-elseif tArgs[3] then
-    APLib.setMonitor(tArgs[3])
+else
+    if hasRenderEngineOption then
+        if renderEngineOptionKey > 1 then
+            APLib.setMonitor(tArgs[1])
+            local renderEngine = tArgs[renderEngineOptionKey + 1]
+            if tArgs[renderEngineOptionKey + 1] then
+                if renderEngine == 'experimental' then
+                    APLib.setRenderer(APLib.renderEngine.experimental)
+                end
+            end
+        else
+            local renderEngine = tArgs[renderEngineOptionKey + 1]
+            if tArgs[renderEngineOptionKey + 1] then
+                if renderEngine == 'experimental' then
+                    APLib.setRenderer(APLib.renderEngine.experimental)
+                end
+            end
+            if tArgs[renderEngineOptionKey + 2] then
+                APLib.setMonitor(tArgs[renderEngineOptionKey + 2])
+            end
+        end
+    else
+        APLib.setMonitor(tArgs[1])
+    end
 end
 
 while true do
@@ -57,6 +107,8 @@ while true do
     APLib.APLWD.drawCache()
 
 end
+
+APLib.setRenderer(APLib.renderEngine.classic)
 
 APLib.setBackgroundMonitorGroup(colors.black)
 APLib.bClearMonitorGroup()
