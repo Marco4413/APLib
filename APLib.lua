@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.22.2',
+    ver = '1.23.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
