@@ -87,6 +87,7 @@ local mbExit = APLib.Button.new(0, 0, 0, 0, 'Exit', nil, nil, colors.green, colo
 
 local mFileButtons = {mbNewOpen, mbSave, mbSaveAs, mbDelete, mbGoto, mbRun, mbExit}
 
+local bRenderer = APLib.Button.new(1, 3, 4, 3, 'Exp', nil, nil, colors.lightGray, colors.gray)
 local bCompact = APLib.Button.new(51, 1, 51, 1, 'C', nil, nil, colors.green, colors.red)
 
 -- CREATING MENUS
@@ -100,7 +101,7 @@ local lCursorPos = APLib.Label.new(21, 1, 'Cursor: ('..mMemo.cursor.pos.char..';
 
 local lPath = APLib.Label.new(1, 19, CurrFile)
 
-local main = {mFileMenu, mbFile, bCompact, mMemo, lLines, lCursorPos, lPath, cAPLWDBroadcast}
+local main = {mFileMenu, mbFile, bRenderer, bCompact, mMemo, lLines, lCursorPos, lPath, cAPLWDBroadcast}
 
 -- CREATING OVERWRITE PROMPT
 
@@ -361,6 +362,19 @@ owpbReject:setCallback(
 )
 
 --//-----------------------------------------\\--
+
+bRenderer:setCallback(
+    APLib.event.button.onPress,
+    function (self, event)
+        if self.state then
+            APLib.setRenderer(APLib.renderEngine.classic)
+            self.text = 'Clas'
+        else
+            APLib.setRenderer(APLib.renderEngine.experimental)
+            self.text = 'Exp'
+        end
+    end
+)
 
 bCompact:setCallback(
     APLib.event.button.onPress,

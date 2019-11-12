@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.24.1',
+    ver = '1.24.2',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -67,6 +67,7 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
     end,
 
     draw = function ()
+        if not globalMonitorBuffer.enabled then return; end
         -- Save current globalMonitor settings
         local oldCursorPosX, oldCursorPosY = globalMonitor.getCursorPos()
         local oldTextColor = globalMonitor.getTextColor()
