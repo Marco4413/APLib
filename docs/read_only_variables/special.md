@@ -11,6 +11,31 @@ These variables are **Tables that contain a lot of functions and that can be con
 | onBClear                    | Function | Function that gets called every time [**bClear()**](../functions/drawing.md#bclear) is used                    |
 | onSetMonitor                | Function | Function that gets called every time [**setMonitor()**](../functions/monitor_management.md#setmonitor) is used |
 
+## globalMonitorBuffer [Table]
+
+| key     | type     | value                                                                    |
+| ------- | -------- | ------------------------------------------------------------------------ |
+| enabled | boolean  | Says if [**globalMonitorBuffer**](#globalmonitorbuffer-table) is enabled |
+| frames  | table    | Contains the last and the new frame                                      |
+| clear   | function | Clears [**frames**](#globalmonitorbufferframes-table).newFrame table     |
+| write   | function | Writes on [**frames**](#globalmonitorbufferframes-table).newFrame table  |
+| draw    | function | Draws [**frames**](#globalmonitorbufferframes-table).newFrame table      |
+
+This makes possible to check what color and what text is displayed on a pixel on the screen by looking into [**globalMonitorBuffer.frames**](#globalmonitorbufferframes-table).<br>
+To use this you should check out [**setRenderer**](../functions/drawing.md#setrenderer) function.
+
+### globalMonitorBuffer.frames [Table]
+
+| key       | type  | value                                                                                                                                                     |
+| --------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| lastFrame | table | Contains the pixels of the last drawn frame                                                                                                               |
+| newFrame  | table | Contains the pixels that are going to be drawn when [**globalMonitorBuffer.draw**](../functions/globalMonitorBuffer.md#globalmonitorbufferdraw) is called |
+
+**Notes:**
+
+* **Every index is converted into a string** when writing to these tables, so if you want to check a pixel you should use tostring on the x or y.
+* **Pixels that have the same color as the background and have no text and custom foreground will be nil values**, basically only pixels that were written with [**globalMonitorBuffer.write**](../functions/globalMonitorBuffer.md#globalmonitorbufferwrite) will be in these tables.
+
 ## OSSettings [Table]
 
 | key                                                           | type     | value                                                                                                                                                                                             |

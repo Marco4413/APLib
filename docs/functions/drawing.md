@@ -4,6 +4,14 @@ Look at [Functions' Home](index.md#general) first.
 
 These functions are **used to set draw settings or draw on [globalMonitor](../read_only_variables/monitor_management.md#globalmonitor-peripheral)**.
 
+## setRenderer
+
+| argument | type | info                                                                                                   |
+| -------- | ---- | ------------------------------------------------------------------------------------------------------ |
+| type     | Int  | Should be picked from [**renderEngine**](../read_only_variables/constants.md#renderengine-table) table |
+
+Sets the way that the library is going to draw things.
+
 ## bClear
 
 It clears [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral)
@@ -62,11 +70,12 @@ By setting [**globalRectangleType**](../writeable_variables/drawing.md#globalrec
 
 ## text
 
-| argument | type   | info                                                                                                                                       |
-| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| x        | Int    | The x pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where `text` should be written |
-| y        | Int    | The y pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where `text` should be written |
-| text     | String | The text that should be written on `x`, `y` of [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral)  |
+| argument      | type    | info                                                                                                                                                                 |
+| ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| x             | Int     | The x pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where `text` should be written                               |
+| y             | Int     | The y pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where `text` should be written                               |
+| text          | String  | The text that should be written on `x`, `y` of [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral)                            |
+| transparentBG | Boolean | If set to true the text will have a transparent background (Works only with experimental [**renderEngine**](../read_only_variables/constants.md#renderengine-table)) |
 
 Writes `text` at `x`, `y` on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) with text color [**globalTextColor**](../writeable_variables/drawing.md#globaltextcolor-color) and text's background color [**globalBackgroundTextColor**](../writeable_variables/drawing.md#globalbackgroundtextcolor-color).
 

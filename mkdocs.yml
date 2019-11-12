@@ -18,6 +18,7 @@ nav:
       - Home: functions/index.md
       - APLWD: functions/APLWD.md
       - Drawing: functions/drawing.md
+      - globalMonitorBuffer: functions/globalMonitorBuffer.md
       - Loop: functions/loop.md
       - Monitor Management: functions/monitor_management.md
       - OSSettings: functions/OSSettings.md
@@ -28,4 +29,4 @@ nav:
     - About: LICENSE.md
 theme: readthedocs
 extra:
-  version: 0.3
+  version: 0.4

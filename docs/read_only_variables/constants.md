@@ -12,6 +12,15 @@ These variables are **used to keep your app compatible with new versions of the 
 | author  | String | Author of the lib      |
 | website | String | Github repo of the lib |
 
+## renderEngine [Table]
+
+| key          | type | value                                                                                                                                                        |
+| ------------ | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| classic      | Int  | Classic render engine (no transparency and pixel manipulation with [**globalMonitorBuffer**](../read_only_variables/special.md#globalmonitorbuffer-table))   |
+| experimental | Int  | Experimental render engine (transparency and pixel manipulation with [**globalMonitorBuffer**](../read_only_variables/special.md#globalmonitorbuffer-table)) |
+
+To be used with function: [**setRenderer**](../functions/drawing.md#setrenderer)
+
 ## rectangleTypes [Table]
 
 | key     | type | value                                                                                                                                                           |
@@ -100,10 +109,11 @@ event = {
             onUnset = 6
         },
         onInit = 1,
-        onClock = 2,
-        onEvent = 3,
-        onTimer = 4,
-        onMonitorChange = 5
+        onStop = 2,
+        onClock = 3,
+        onEvent = 4,
+        onTimer = 5,
+        onMonitorChange = 6
     }
 }
 ```

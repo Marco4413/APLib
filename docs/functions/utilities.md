@@ -23,6 +23,14 @@ Returns an Array of substrings that are splitted by the specified `separator`.
 Returns false if `t1` and `t2` aren't equal.<br>
 Returns true if `t1` and `t2` are equal.
 
+## tableCopy
+
+| argument | type  | info                            |
+| -------- | ----- | ------------------------------- |
+| table    | Table | The table that you need to copy |
+
+Returns a copy of `table` (If you change something in `table` it won't change the table that was returned, because it's not a simple `table1 = table2`, same applies for all the tables that are in `table`).
+
 ## tableHasKey
 
 | argument | type             | info                                         |

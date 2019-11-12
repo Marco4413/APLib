@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.23.0',
+    ver = '1.24.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -16,14 +16,14 @@ globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
 
 globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
     enabled = false,
-    pixels = {
+    frames = {
         lastFrame = {},
         newFrame = {}
     },
 
-    clear = function () -- CLEAR PIXELS TABLE
+    clear = function () -- CLEAR NEWFRAME TABLE
         
-        globalMonitorBuffer.pixels.newFrame = {}
+        globalMonitorBuffer.frames.newFrame = {}
     
     end,
 
@@ -36,8 +36,8 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
         y = tostring(y)
 
         -- If row doesn't exist then create it
-        if not globalMonitorBuffer.pixels.newFrame[y] then
-            globalMonitorBuffer.pixels.newFrame[y] = {}
+        if not globalMonitorBuffer.frames.newFrame[y] then
+            globalMonitorBuffer.frames.newFrame[y] = {}
         end
 
         text = tostring(text)
@@ -45,7 +45,7 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
         -- For every character in text do
         for char in text:gmatch('.') do
             -- Store current pixel to a variable
-            local pixel = globalMonitorBuffer.pixels.newFrame[y][tostring(x)]
+            local pixel = globalMonitorBuffer.frames.newFrame[y][tostring(x)]
             
             local thisBG = bg 
             -- If it needs to be transparent then make thisBG the same color of the pixel that the char is on
@@ -57,7 +57,7 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
                 end
             end
             -- Put new pixel in table
-            globalMonitorBuffer.pixels.newFrame[y][tostring(x)] = {
+            globalMonitorBuffer.frames.newFrame[y][tostring(x)] = {
                 char = char,
                 fg = fg,
                 bg = thisBG
@@ -75,7 +75,7 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
         -- For each row of the monitor do
         for y=1, globalMonitorHeight do
             -- Store row table
-            local row = globalMonitorBuffer.pixels.newFrame[tostring(y)]
+            local row = globalMonitorBuffer.frames.newFrame[tostring(y)]
             -- For each pixel in the row do
             for x=1, globalMonitorWidth do
                 -- Set monitor's cursor to current pixel
@@ -109,7 +109,7 @@ globalMonitorBuffer = { -- EXPERIMENTAL RENDERER
         globalMonitor.setTextColor(oldTextColor)
         globalMonitor.setBackgroundColor(oldBackgroundColor)
 
-        globalMonitorBuffer.pixels.lastFrame = globalMonitorBuffer.pixels.newFrame
+        globalMonitorBuffer.frames.lastFrame = tableCopy(globalMonitorBuffer.frames.newFrame)
     end
 }
 
@@ -331,6 +331,24 @@ function tablesAreEqual(t1, t2)
     end
 
     return internalCheck(t1, t2)
+end
+
+function tableCopy(_table)
+    assert(type(_table) == 'table', 'tableCopy: table must be a table, got '..type(_table))
+    -- Create table copy
+    local newT = {}
+    -- Loop through every key in table
+    for key, value in pairs(_table) do
+        -- If value is a table then copy it and assign the copy to the new table's key
+        if type(value) == 'table' then
+            newT[key] = tableCopy(value)
+        -- If value isn't a table then put value into new table's key
+        else
+            newT[key] = value
+        end
+    end
+    -- Return copy of the table
+    return newT
 end
 
 function tableHasKey(_table, _key)
