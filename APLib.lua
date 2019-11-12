@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.24.0',
+    ver = '1.24.1',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -2700,7 +2700,7 @@ function Window.new(_x1, _y1, _x2, _y2, _color)
             y = 1
         },
         shadow = {
-            enabled = false,
+            enabled = true,
             color = colors.black,
             offset = {
                 x = 1,
@@ -2963,7 +2963,7 @@ function OBJGroup:touch(_x, _y, _event, _cantUpdate)
     if not self.hidden then
         if not _cantUpdate then
             local _objUpdated = false
-            for _, obj in pairs(self.objs.list) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
+            for _, obj in pairs(self.objs.events.touch) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
                 if obj:touch(_x, _y, _event, _objUpdated) then
                     self.callbacks.onOBJPress(self, obj, _event)
                     _objUpdated = true
