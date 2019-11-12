@@ -91,7 +91,9 @@ else
             end
         end
     else
-        APLib.setMonitor(tArgs[1])
+        if tArgs[1] then
+            APLib.setMonitor(tArgs[1])
+        end
     end
 end
 
