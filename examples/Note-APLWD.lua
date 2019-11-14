@@ -506,7 +506,7 @@ mMemo:setCallback(
             end
         end
         APLib.setColor(bgColor)
-        APLib.rectangle(lLines.pos.x, lLines.pos.y, 50, lLines.pos.y)
+        APLib.rectangle(lLines.pos.x, lLines.pos.y, APLib.globalMonitorWidth - 1, lLines.pos.y)
         APLib.setColor(shapeColor)
         lLines.text = 'Lines: '..#self.lines
         lLines:draw()
