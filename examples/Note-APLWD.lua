@@ -27,6 +27,8 @@ APLibPath = nil
 
 local tArgs = { ... }
 
+local modemSide = 'default'
+
 local shapeColor = colors.lightGray
 local textColor = colors.white
 local bgTextColor = colors.gray
@@ -55,6 +57,77 @@ APLib.setColor(shapeColor)
 APLib.setTextColor(textColor)
 APLib.setBackgroundTextColor(bgTextColor)
 
+-- CREATING LAYOUT
+
+local LAYOUT = {
+    type = 'unknown',
+    init = function (self)
+        local function setLayout(self, layout)
+            for key, value in pairs(layout) do
+                self.current[key] = value
+            end
+        end
+
+        setLayout(self, self.all)
+
+        if turtle then
+            setLayout(self, self.turtle)
+            self.type = 'turtle'
+        elseif pocket then
+            setLayout(self, self.pocket)
+            self.type = 'pocket'
+        else
+            setLayout(self, self.computer)
+            self.type = 'computer'
+        end
+    end,
+    all = {
+        mbmInput = function () return 0, 0, 0, 0, nil, shapeColor, shapeColor; end,
+        mbFile = function () return 1, 1, 4, 1, 'File', nil, nil, colors.lightGray, colors.gray; end,
+        mbNewOpen = function () return 0, 0, 0, 0, 'New/Open', nil, nil, colors.lightGray, colors.gray; end,
+        mbSave = function () return 0, 0, 0, 0, 'Save', nil, nil, colors.lightGray, colors.gray; end,
+        mbSaveAs = function () return 0, 0, 0, 0, 'SaveAs', nil, nil, colors.lightGray, colors.gray; end,
+        mbDelete = function () return 0, 0, 0, 0, 'Delete', nil, nil, colors.lightGray, colors.gray; end,
+        mbGoto = function () return 0, 0, 0, 0, 'Goto', nil, nil, colors.lightGray, colors.gray; end,
+        mbRun = function () return 0, 0, 0, 0, 'Run', nil, nil, colors.lightGray, colors.gray; end,
+        mbExit = function () return 0, 0, 0, 0, 'Exit', nil, nil, colors.green, colors.red; end,
+        mFileMenu = function () return 1, 2, 10, 8; end,
+        lLines = function () return 9, 1, 'Lines: 0'; end,
+        lCursorPos = function () return 21, 1, 'Cursor: (1; 1)'; end,
+        owplL1 = function () return 3, 2, 'Do you want', nil, colors.lightGray; end,
+        owplL2 = function () return 2, 3, 'to overwrite?', nil, colors.lightGray; end,
+        owpbAccept = function () return 2, 5, 4, 5, 'Yes', nil, nil, colors.gray, colors.lightGray; end,
+        owpbReject = function () return 13, 5, 14, 5, 'No', nil, nil, colors.gray, colors.lightGray; end,
+        owpwMain = function () return 2, 2, 16, 7, colors.lightGray; end
+    },
+    computer = {
+        mMemo = function () return 5, 2, 51, 18, nil, nil, colors.black; end,
+        bRenderer = function () return 1, 2, 4, 18, '', nil, nil, colors.lightGray, colors.gray; end,
+        lRenderer = function () return 1, 19, 'Classic render engine is being used!', colors.red; end,
+        bCompact = function () return 51, 1, 51, 1, 'C', nil, nil, colors.green, colors.red; end,
+        lPath = function () return 1, 19, CurrFile; end,
+        owpwMain = function () return 18, 7, 32, 12, colors.lightGray; end
+    },
+    turtle = {
+        mMemo = function () return 5, 2, 39, 12, nil, nil, colors.black; end,
+        bRenderer = function () return 1, 2, 4, 12, '', nil, nil, colors.lightGray, colors.gray; end,
+        lRenderer = function () return 1, 13, 'Classic render mode!', colors.red; end,
+        bCompact = function () return 39, 1, 39, 1, 'C', nil, nil, colors.green, colors.red; end,
+        lPath = function () return 1, 13, CurrFile; end
+    },
+    pocket = {
+        mMemo = function () return 5, 2, 26, 18, nil, nil, colors.black; end,
+        bRenderer = function () return 1, 2, 4, 18, '', nil, nil, colors.lightGray, colors.gray; end,
+        lRenderer = function () return 1, 20, 'Classic render mode!', colors.red; end,
+        bCompact = function () return 26, 1, 26, 1, 'C', nil, nil, colors.green, colors.red; end,
+        lCursorPos = function () return 1, 19, 'Cursor: (1; 1)'; end,
+        lPath = function () return 1, 20, CurrFile; end
+    },
+    current = {}
+}
+
+LAYOUT:init()
+
 -- CREATING CLOCK
 local cAPLWDBroadcast = APLib.Clock.new(5)
 cAPLWDBroadcast:setCallback(
@@ -65,53 +138,55 @@ cAPLWDBroadcast:setCallback(
 )
 
 -- CREATING MEMO
-local mMemo = APLib.Memo.new(5, 2, 51, 18, nil, nil, colors.black)
+local mMemo = APLib.Memo.new(LAYOUT.current.mMemo())
 mMemo:limits(true)
 mMemo:setCursorLimits(nil, 9999)
 
 --mMemo:enableSelfLoop(true)
 
-local mbmInput = APLib.Memo.new(0, 0, 0, 0, nil, shapeColor, shapeColor)
+local mbmInput = APLib.Memo.new(LAYOUT.current.mbmInput())
 mbmInput:enableSelfLoop(true)
 
 -- CREATING BUTTONS
-local mbFile = APLib.Button.new(1, 1, 4, 1, 'File', nil, nil, colors.lightGray, colors.gray)
+local mbFile = APLib.Button.new(LAYOUT.current.mbFile())
 
-local mbNewOpen = APLib.Button.new(0, 0, 0, 0, 'New/Open', nil, nil, colors.lightGray, colors.gray)
-local mbSave = APLib.Button.new(0, 0, 0, 0, 'Save', nil, nil, colors.lightGray, colors.gray)
-local mbSaveAs = APLib.Button.new(0, 0, 0, 0, 'SaveAs', nil, nil, colors.lightGray, colors.gray)
-local mbDelete = APLib.Button.new(0, 0, 0, 0, 'Delete', nil, nil, colors.lightGray, colors.gray)
-local mbGoto = APLib.Button.new(0, 0, 0, 0, 'Goto', nil, nil, colors.lightGray, colors.gray)
-local mbRun = APLib.Button.new(0, 0, 0, 0, 'Run', nil, nil, colors.lightGray, colors.gray)
-local mbExit = APLib.Button.new(0, 0, 0, 0, 'Exit', nil, nil, colors.green, colors.red)
+local mbNewOpen = APLib.Button.new(LAYOUT.current.mbNewOpen())
+local mbSave = APLib.Button.new(LAYOUT.current.mbSave())
+local mbSaveAs = APLib.Button.new(LAYOUT.current.mbSaveAs())
+local mbDelete = APLib.Button.new(LAYOUT.current.mbDelete())
+local mbGoto = APLib.Button.new(LAYOUT.current.mbGoto())
+local mbRun = APLib.Button.new(LAYOUT.current.mbRun())
+local mbExit = APLib.Button.new(LAYOUT.current.mbExit())
 
 local mFileButtons = {mbNewOpen, mbSave, mbSaveAs, mbDelete, mbGoto, mbRun, mbExit}
 
-local bRenderer = APLib.Button.new(1, 3, 4, 3, 'Exp', nil, nil, colors.lightGray, colors.gray)
-local bCompact = APLib.Button.new(51, 1, 51, 1, 'C', nil, nil, colors.green, colors.red)
+local bRenderer = APLib.Button.new(LAYOUT.current.bRenderer())
+local lRenderer = APLib.Label.new(LAYOUT.current.lRenderer())
+lRenderer:hide(true)
+local bCompact = APLib.Button.new(LAYOUT.current.bCompact())
 
 -- CREATING MENUS
-local mFileMenu = APLib.Menu.new(1, 2, 10, 8)
+local mFileMenu = APLib.Menu.new(LAYOUT.current.mFileMenu())
 mFileMenu:set(mFileButtons)
 
 
 -- LABELS
-local lLines = APLib.Label.new(9, 1, 'Lines: '..#mMemo.lines)
-local lCursorPos = APLib.Label.new(21, 1, 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')')
+local lLines = APLib.Label.new(LAYOUT.current.lLines())
+local lCursorPos = APLib.Label.new(LAYOUT.current.lCursorPos())
 
-local lPath = APLib.Label.new(1, 19, CurrFile)
+local lPath = APLib.Label.new(LAYOUT.current.lPath())
 
-local main = {mFileMenu, mbFile, bRenderer, bCompact, mMemo, lLines, lCursorPos, lPath, cAPLWDBroadcast}
+local main = {mFileMenu, mbFile, bRenderer, bCompact, mMemo, lLines, lCursorPos, lPath, lRenderer, cAPLWDBroadcast}
 
 -- CREATING OVERWRITE PROMPT
 
-local owplL1 = APLib.Label.new(20, 8, 'Do you want', nil, colors.lightGray)
-local owplL2 = APLib.Label.new(19, 9, 'to overwrite?', nil, colors.lightGray)
+local owplL1 = APLib.Label.new(LAYOUT.current.owplL1())
+local owplL2 = APLib.Label.new(LAYOUT.current.owplL2())
 
-local owpbAccept = APLib.Button.new(19, 11, 21, 11, 'Yes', nil, nil, colors.gray, colors.lightGray)
-local owpbReject = APLib.Button.new(30, 11, 31, 11, 'No', nil, nil, colors.gray, colors.lightGray)
+local owpbAccept = APLib.Button.new(LAYOUT.current.owpbAccept())
+local owpbReject = APLib.Button.new(LAYOUT.current.owpbReject())
 
-local owpwMain = APLib.Window.new(18, 7, 32, 12, colors.lightGray)
+local owpwMain = APLib.Window.new(LAYOUT.current.owpwMain())
 owpwMain:set({owplL1, owplL2, owpbAccept, owpbReject, owprBG})
 
 -- FUNCTIONS
@@ -368,10 +443,18 @@ bRenderer:setCallback(
     function (self, event)
         if self.state then
             APLib.setRenderer(APLib.renderEngine.classic)
-            self.text = 'Clas'
+            self.pos.y2 = self.pos.y2 - 1
+            mMemo.pos.y2 = mMemo.pos.y2 - 1
+            lPath.pos.y = lPath.pos.y - 1
+            if LAYOUT.type == 'pocket' then lCursorPos.pos.y = lCursorPos.pos.y - 1; end
+            lRenderer:hide(not self.state)
         else
             APLib.setRenderer(APLib.renderEngine.experimental)
-            self.text = 'Exp'
+            self.pos.y2 = self.pos.y2 + 1
+            mMemo.pos.y2 = mMemo.pos.y2 + 1
+            lPath.pos.y = lPath.pos.y + 1
+            if LAYOUT.type == 'pocket' then lCursorPos.pos.y = lCursorPos.pos.y + 1; end
+            lRenderer:hide(not self.state)
         end
     end
 )
@@ -578,8 +661,14 @@ APLib.setLoopCallback(
     end
 )
 
+if modemSide == 'default' then
+    if LAYOUT.type == 'turtle' then modemSide = 'left'
+    elseif LAYOUT.type == 'pocket' then modemSide = 'back'
+    else modemSide = 'top'; end
+end
+
 APLib.APLWD.enable(true)
-APLib.APLWD.host('top')
+APLib.APLWD.host(modemSide)
 
 APLib.setMonitor('term')
 APLib.setBackgroundMonitorGroup(bgColor)

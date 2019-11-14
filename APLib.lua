@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.24.2',
+    ver = '1.25.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -2795,6 +2795,17 @@ function Window:set(_objGroup)
     assert(type(_objGroup) == 'table', 'Window.set: objGroup must be a table, got '..type(_objGroup))
 
     self.objs.list = _objGroup
+    -- Make object positions relative to the window
+    for key, value in pairs(self.objs.list) do
+        if value.pos then
+            if value.pos.x1 then value.pos.x1 = value.pos.x1 + self.pos.x1 - 1; end
+            if value.pos.x2 then value.pos.x2 = value.pos.x2 + self.pos.x1 - 1; end
+            if value.pos.y1 then value.pos.y1 = value.pos.y1 + self.pos.y1 - 1; end
+            if value.pos.y2 then value.pos.y2 = value.pos.y2 + self.pos.y1 - 1; end
+            if value.pos.x then value.pos.x = value.pos.x + self.pos.x1 - 1; end
+            if value.pos.y then value.pos.y = value.pos.y + self.pos.y1 - 1; end
+        end
+    end
     self.objs.events = getOBJSEvents(_objGroup)
 end
 
