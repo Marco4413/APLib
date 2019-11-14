@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.25.0',
+    ver = '1.25.1',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -3476,7 +3476,7 @@ local tArgs = { ... } -- GETTING TERMINAL ARGS
 if table.maxn(tArgs) > 0 then
     tArgs[1] = string.lower(tArgs[1]) -- GETTING OPTION
     if tArgs[1] == 'ver' then -- OPTION LIB
-        print('Lib version: '..ver)
+        print('Lib version: '..info.ver)
     elseif tArgs[1] == 'setup' then -- OPTION SETUP
         if shell then -- CHECKING IF SHELL API IS AVAILABLE
             local _LibPath = '/'..shell.getRunningProgram()
