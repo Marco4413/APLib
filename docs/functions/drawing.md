@@ -88,6 +88,17 @@ Writes `text` at `x`, `y` on [**globalMonitor**](../read_only_variables/monitor_
 
 Draws a point at `x`, `y` on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) with color [**globalColor**](../writeable_variables/drawing.md#globalcolor-color).
 
+## line
+
+| argument | type   | info                                                                                                                                |
+| -------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| x1       | Int    | The x pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where the line should start |
+| y1       | Int    | The y pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where the line should start |
+| x2       | Int    | The x pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where the line should end   |
+| y2       | Int    | The y pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where the line should end   |
+
+Draws a line that starts from `x1`, `y1` and ends at `x2`, `y2` on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) with color [**globalColor**](../writeable_variables/drawing.md#globalcolor-color).
+
 ## rectangle
 
 | argument | type   | info                                                                                                                                                          |
@@ -98,3 +109,15 @@ Draws a point at `x`, `y` on [**globalMonitor**](../read_only_variables/monitor_
 | y2       | Int    | The ending y pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where the rectangle should stop to be drawn    |
 
 Draws a rectangle with type [**globalRectangleType**](../writeable_variables/drawing.md#globalrectangletype-rectangletype) on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) from `x1`, `y1` to `x2`, `y2` with color [**globalColor**](../writeable_variables/drawing.md#globalcolor-color).
+
+## ellipse
+
+| argument | type   | info                                                                                                                                              |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| xCenter  | Int    | The x pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where the center of the ellipse should be |
+| yCenter  | Int    | The y pos on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) where the center of the ellipse should be |
+| radius   | Int    | The radius of the ellipse                                                                                                                         |
+
+Draws an ellipse that has as its center `x`, `y` on [**globalMonitor**](../read_only_variables/monitor_management.md#globalmonitor-peripheral) with color [**globalColor**](../writeable_variables/drawing.md#globalcolor-color).
+
+Note: It's called ellipse because of the way that CC handles pixels, so we can't really draw a circle.
