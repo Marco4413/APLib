@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.25.1',
+    ver = '1.26.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -455,7 +455,7 @@ function setMonitor(_monitorName)
         globalMonitorName = 'term'
         globalMonitorWidth, globalMonitorHeight = globalMonitor.getSize()
     else
-        assert(tostring(peripheral.getType(_monitorName)) == 'monitor', 'setMonitor: monitorName must be a monitor, got '..tostring(peripheral.getType(_monitorName)))
+        assert(tostring(peripheral.getType(_monitorName)) == 'monitor', 'setMonitor: '.._monitorName..' must be a monitor, got '..tostring(peripheral.getType(_monitorName)))
         local _monitor = peripheral.wrap(_monitorName)
         globalMonitor = _monitor --SET GLOBALMONITOR TO MONITOR
         globalMonitorName = _monitorName
@@ -471,7 +471,7 @@ function setMonitorGroup(_monitorNameList)
     assert(type(_monitorNameList) == 'table', 'setMonitorGroup: monitorNameList must be a table, got '..type(_monitorNameList))
     for key, value in pairs(_monitorNameList) do
         value = tostring(value)
-        if not value == 'term' then
+        if value ~= 'term' then
             assert(tostring(peripheral.getType(value)) == 'monitor', 'setMonitorGroup: '..value..' must be a monitor, got '..tostring(peripheral.getType(value)))
         end
     end
@@ -779,8 +779,8 @@ function setRectangleType(_type)
 end
 
 function text(_x, _y, _text, _transparentBG)
-    assert(type(_x) == 'number', 'Text: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Text: y must be a number, got '..type(_y))
+    assert(type(_x) == 'number', 'text: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'text: y must be a number, got '..type(_y))
     
     _text = tostring(_text)
 
@@ -829,8 +829,8 @@ function text(_x, _y, _text, _transparentBG)
 end
 
 function point(_x, _y)
-    assert(type(_x) == 'number', 'Point: x must be a number, got '..type(_x))
-    assert(type(_y) == 'number', 'Point: y must be a number, got '..type(_y))
+    assert(type(_x) == 'number', 'point: x must be a number, got '..type(_x))
+    assert(type(_y) == 'number', 'point: y must be a number, got '..type(_y))
     local oldCursorPosX, oldCursorPosY = globalMonitor.getCursorPos() --PUTS CURSOR ON X, Y
     local oldBackgroundColor = globalMonitor.getBackgroundColor() --CHANGES THE COLOR OF THE POINT
 
@@ -861,11 +861,29 @@ function point(_x, _y)
     end
 end
 
+function line(x1, y1, x2, y2) -- SOURCE: https://en.wikipedia.org/wiki/Line_drawing_algorithm
+    assert(type(x1) == 'number', 'line: x1 must be a number, got '..type(x1))
+    assert(type(y1) == 'number', 'line: y1 must be a number, got '..type(y1))
+    assert(type(x2) == 'number', 'line: x2 must be a number, got '..type(x2))
+    assert(type(y2) == 'number', 'line: y2 must be a number, got '..type(y2))
+
+    local dir = 1
+    if x1 > x2 then dir = -1; end
+
+    local dx = x2 - x1
+    local dy = y2 - y1
+
+    for x=x1, x2, dir do
+        local y = y1 + dy * (x - x1) / dx
+        point(x, y) 
+    end
+end
+
 function rectangle(_x1, _y1, _x2, _y2)
-    assert(type(_x1) == 'number', 'Point: x1 must be a number, got '..type(_x1))
-    assert(type(_y1) == 'number', 'Point: y1 must be a number, got '..type(_y1))
-    assert(type(_x2) == 'number', 'Point: x2 must be a number, got '..type(_x2))
-    assert(type(_y2) == 'number', 'Point: y2 must be a number, got '..type(_y2))
+    assert(type(_x1) == 'number', 'rectangle: x1 must be a number, got '..type(_x1))
+    assert(type(_y1) == 'number', 'rectangle: y1 must be a number, got '..type(_y1))
+    assert(type(_x2) == 'number', 'rectangle: x2 must be a number, got '..type(_x2))
+    assert(type(_y2) == 'number', 'rectangle: y2 must be a number, got '..type(_y2))
     local _incrementX = 1 --FINDS THE INCREMENT FOR THE LOOPS
     local _incrementY = 1
     if _x1 > _x2 then _incrementX = -1; end
@@ -919,6 +937,43 @@ function rectangle(_x1, _y1, _x2, _y2)
     end
 end
 
+function ellipse(xCenter, yCenter, radius) -- SOURCE: http://groups.csail.mit.edu/graphics/classes/6.837/F98/Lecture6/circle.html
+    assert(type(xCenter) == 'number', 'ellipse: xCenter must be a number, got '..type(xCenter))
+    assert(type(yCenter) == 'number', 'ellipse: yCenter must be a number, got '..type(yCenter))
+    assert(type(radius) == 'number', 'ellipse: radius must be a number, got '..type(radius))
+
+    local r2 = radius * radius
+
+    point(xCenter         , yCenter + radius)
+    point(xCenter         , yCenter - radius)
+    point(xCenter + radius, yCenter         )
+    point(xCenter - radius, yCenter         )
+
+    local x = 1
+    local y = math.floor(math.sqrt(r2 - 1) + 0.5)
+
+    while x < y do
+        point(xCenter + x, yCenter + y)
+        point(xCenter + x, yCenter - y)
+        point(xCenter - x, yCenter + y)
+        point(xCenter - x, yCenter - y)
+        point(xCenter + y, yCenter + x)
+        point(xCenter + y, yCenter - x)
+        point(xCenter - y, yCenter + x)
+        point(xCenter - y, yCenter - x)
+
+        x = x + 1
+        y = math.floor(math.sqrt(r2 - x * x) + 0.5)
+    end
+
+    if x == y then
+        point(xCenter + x, yCenter + y)
+        point(xCenter + x, yCenter - y)
+        point(xCenter - x, yCenter + y)
+        point(xCenter - x, yCenter - y)
+    end
+end
+
 function checkAreaPress(_x1, _y1, _x2, _y2, _xPressed, _yPressed)
     assert(type(_x1) == 'number', 'checkAreaPress: x1 must be a number, got '..type(_x1))
     assert(type(_y1) == 'number', 'checkAreaPress: y1 must be a number, got '..type(_y1))
@@ -959,7 +1014,7 @@ function Clock.new(_interval)
     assert(type(_interval) == 'number', 'Clock.new: interval must be a number, got '..type(_interval))
 
     --CREATE CLOCK
-    _newClock = {
+    local _newClock = {
         clock = os.clock(),
         interval = _interval,
         callbacks = {
@@ -1007,7 +1062,7 @@ function Point.new(_x, _y, _color)
     end
 
     --CREATE RECTANGLE
-    _newPoint = {
+    local _newPoint = {
         color = _color,
         hidden = false,
         pos = {
@@ -1103,7 +1158,7 @@ function Rectangle.new(_x1, _y1, _x2, _y2, _color, _type)
     end
 
     --CREATE RECTANGLE
-    _newRectangle = {
+    local _newRectangle = {
         color = _color,
         type = _type,
         hidden = false,
@@ -1200,7 +1255,7 @@ function Header.new(_y, _text, _textColor, _backgroundTextColor, _transparentBG)
     end
 
     --CREATE HEADER
-    _newHeader = {
+    local _newHeader = {
         text = _text,
         hidden = false,
         pos = {
@@ -1323,7 +1378,7 @@ function Label.new(_x, _y, _text, _textColor, _backgroundTextColor, _transparent
     end
 
     --CREATE LABEL
-    _newLabel = {
+    local _newLabel = {
         text = _text,
         hidden = false,
         pos = {
@@ -1441,7 +1496,7 @@ function Button.new(_x1, _y1, _x2, _y2, _text, _textColor, _backgroundTextColor,
     end
 
     --CREATE BUTTON
-    _newButton = {
+    local _newButton = {
         text = _text,
         state = false,
         hidden = false,
@@ -1570,7 +1625,7 @@ function Menu.new(_x1, _y1, _x2, _y2, _color)
     end
 
     --CREATE MENU
-    _newMenu = {
+    local _newMenu = {
         color = _color,
         objs = {},
         hidden = true,
@@ -1733,7 +1788,7 @@ function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _
     end
     
     --CREATE PERCENTAGEBAR
-    _newPercentageBar = {
+    local _newPercentageBar = {
         hidden = false,
         value = {
             draw = _drawValue,
@@ -1977,7 +2032,7 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
     end
     
     --CREATE MEMO
-    _newMemo = {
+    local _newMemo = {
         active = false,
         hidden = false,
         selfLoop = false,
@@ -2692,7 +2747,7 @@ function Window.new(_x1, _y1, _x2, _y2, _color)
     end
 
     --CREATE WINDOW
-    _newWindow = {
+    local _newWindow = {
         active = false,
         hidden = false,
         color = _color,
@@ -2791,19 +2846,29 @@ function Window:setCallback(_event, _callback)
     end
 end
 
-function Window:set(_objGroup)
+function Window:set(_objGroup, relative)
     assert(type(_objGroup) == 'table', 'Window.set: objGroup must be a table, got '..type(_objGroup))
 
     self.objs.list = _objGroup
-    -- Make object positions relative to the window
-    for key, value in pairs(self.objs.list) do
-        if value.pos then
-            if value.pos.x1 then value.pos.x1 = value.pos.x1 + self.pos.x1 - 1; end
-            if value.pos.x2 then value.pos.x2 = value.pos.x2 + self.pos.x1 - 1; end
-            if value.pos.y1 then value.pos.y1 = value.pos.y1 + self.pos.y1 - 1; end
-            if value.pos.y2 then value.pos.y2 = value.pos.y2 + self.pos.y1 - 1; end
-            if value.pos.x then value.pos.x = value.pos.x + self.pos.x1 - 1; end
-            if value.pos.y then value.pos.y = value.pos.y + self.pos.y1 - 1; end
+    -- Get top left corner of the window
+    local x1 = math.min(self.pos.x1, self.pos.x2)
+    local y1 = math.min(self.pos.y1, self.pos.y2)
+    -- Loop through every object
+    for _, obj in pairs(self.objs.list) do
+        -- Make obj.parent be this window
+        obj.parent = self
+        -- If the obj position should be relative then make it relative
+        if relative then
+            -- Make sure that the object has a position
+            if obj.pos then
+                -- Make object positions relative to the window
+                if obj.pos.x1 then obj.pos.x1 = obj.pos.x1 + x1 - 1; end
+                if obj.pos.x2 then obj.pos.x2 = obj.pos.x2 + x1 - 1; end
+                if obj.pos.y1 then obj.pos.y1 = obj.pos.y1 + y1 - 1; end
+                if obj.pos.y2 then obj.pos.y2 = obj.pos.y2 + y1 - 1; end
+                if obj.pos.x  then obj.pos.x  = obj.pos.x  + x1 - 1; end
+                if obj.pos.y  then obj.pos.y  = obj.pos.y  + y1 - 1; end
+            end
         end
     end
     self.objs.events = getOBJSEvents(_objGroup)
@@ -2864,12 +2929,14 @@ function Window:mouse_drag(_event)
             self.pos.y2 = self.pos.y2 + yDiff
 
             for _, obj in pairs(self.objs.list) do
-                if obj.pos.x then obj.pos.x = obj.pos.x + xDiff; end
-                if obj.pos.x1 then obj.pos.x1 = obj.pos.x1 + xDiff; end
-                if obj.pos.x2 then obj.pos.x2 = obj.pos.x2 + xDiff; end
-                if obj.pos.y then obj.pos.y = obj.pos.y + yDiff; end
-                if obj.pos.y1 then obj.pos.y1 = obj.pos.y1 + yDiff; end
-                if obj.pos.y2 then obj.pos.y2 = obj.pos.y2 + yDiff; end
+                if obj.pos then
+                    if obj.pos.x then obj.pos.x = obj.pos.x + xDiff; end
+                    if obj.pos.x1 then obj.pos.x1 = obj.pos.x1 + xDiff; end
+                    if obj.pos.x2 then obj.pos.x2 = obj.pos.x2 + xDiff; end
+                    if obj.pos.y then obj.pos.y = obj.pos.y + yDiff; end
+                    if obj.pos.y1 then obj.pos.y1 = obj.pos.y1 + yDiff; end
+                    if obj.pos.y2 then obj.pos.y2 = obj.pos.y2 + yDiff; end
+                end
             end
         end
     end
@@ -2917,7 +2984,7 @@ OBJGroup = {}
 function OBJGroup.new()
 
     --CREATE OBJGROUP
-    _newOBJGroup = {
+    local _newOBJGroup = {
         objs = {
             list = {},
             events = {
@@ -2965,6 +3032,11 @@ function OBJGroup:set(_objGroup)
     assert(type(_objGroup) == 'table', 'OBJGroup.set: objGroup must be a table, got '..type(_objGroup))
 
     self.objs.list = _objGroup
+    -- Loop through every object
+    for _, obj in pairs(self.objs.list) do
+        -- Make obj.parent be this OBJGroup
+        obj.parent = self
+    end
     self.objs.events = getOBJSEvents(_objGroup)
 end
 

@@ -176,7 +176,7 @@ local owpbAccept = APLib.Button.new(LAYOUT.current.owpbAccept())
 local owpbReject = APLib.Button.new(LAYOUT.current.owpbReject())
 
 local owpwMain = APLib.Window.new(LAYOUT.current.owpwMain())
-owpwMain:set({owplL1, owplL2, owpbAccept, owpbReject, owprBG})
+owpwMain:set({owplL1, owplL2, owpbAccept, owpbReject, owprBG}, true)
 
 -- FUNCTIONS
 
