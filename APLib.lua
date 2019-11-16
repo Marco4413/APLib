@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.26.0',
+    ver = '1.27.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -861,21 +861,76 @@ function point(_x, _y)
     end
 end
 
-function line(x1, y1, x2, y2) -- SOURCE: https://en.wikipedia.org/wiki/Line_drawing_algorithm
+function line(x1, y1, x2, y2) -- SOURCE: https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
     assert(type(x1) == 'number', 'line: x1 must be a number, got '..type(x1))
     assert(type(y1) == 'number', 'line: y1 must be a number, got '..type(y1))
     assert(type(x2) == 'number', 'line: x2 must be a number, got '..type(x2))
     assert(type(y2) == 'number', 'line: y2 must be a number, got '..type(y2))
 
-    local dir = 1
-    if x1 > x2 then dir = -1; end
+    local function lineLow(x1, y1, x2, y2)
+        local dir = 1
+        if x1 > x2 then dir = -1; end
 
-    local dx = x2 - x1
-    local dy = y2 - y1
+        local dx = x2 - x1
+        local dy = y2 - y1
+        local yi = 1
 
-    for x=x1, x2, dir do
-        local y = y1 + dy * (x - x1) / dx
-        point(x, y) 
+        if dy < 0 then
+            yi = -1
+            dy = -dy
+        end
+
+        local D = 2 * dy - dx
+        local y = y1
+
+        for x=x1, x2, dir do
+            point(x, y) 
+            if D > 0 then
+                y = y + yi
+                D = D - 2 * dx
+            end
+            D = D + 2 * dy
+        end
+    end
+
+    local function lineHigh(x1, y1, x2, y2)
+        local dir = 1
+        if y1 > y2 then dir = -1; end
+
+        local dx = x2 - x1
+        local dy = y2 - y1
+        local xi = 1
+
+        if dx < 0 then
+            xi = -1
+            dx = -dx
+        end
+
+        local D = 2 * dx - dy
+        local x = x1
+
+        for y=y1, y2, dir do
+            point(x, y) 
+            if D > 0 then
+                x = x + xi
+                D = D - 2 * dy
+            end
+            D = D + 2 * dx
+        end
+    end
+
+    if math.abs(y2 - y1) < math.abs(x2 - x1) then
+        if x1 > x2 then
+            lineLow(x2, y2, x1, y1)
+        else
+            lineLow(x1, y1, x2, y2)
+        end
+    else
+        if y1 > y2 then
+            lineHigh(x2, y2, x1, y1)
+        else
+            lineHigh(x1, y1, x2, y2)
+        end
     end
 end
 
