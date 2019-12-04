@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.28.0',
+    ver = '1.28.1',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -1169,14 +1169,14 @@ function Point:touch(_x, _y, _event, _cantUpdate)
     if not self.hidden then
         if not _cantUpdate then
             if (self.pos.x == _x) and (self.pos.y == _y) then -- CHECK IF IT WAS PRESSED
-                self.callbacks.onPress(self, _event)
+                self.callbacks.onPress(self, _event, _cantUpdate)
                 return true
             else
-                self.callbacks.onFailedPress(self, _event)
+                self.callbacks.onFailedPress(self, _event, _cantUpdate)
                 return false
             end
         else
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
         end
     end
     return false
@@ -1271,14 +1271,14 @@ function Rectangle:touch(_x, _y, _event, _cantUpdate)
     if not self.hidden then
         if not _cantUpdate then
             if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
-                self.callbacks.onPress(self, _event)
+                self.callbacks.onPress(self, _event, _cantUpdate)
                 return true
             else
-                self.callbacks.onFailedPress(self, _event)
+                self.callbacks.onFailedPress(self, _event, _cantUpdate)
                 return false
             end
         else
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
         end
     end
     return false
@@ -1393,14 +1393,14 @@ function Header:touch(_x, _y, _event, _cantUpdate)
             local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
             if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
                 -- IF THE HEADER WAS PRESSED CALL CALLBACK
-                self.callbacks.onPress(self, _event)
+                self.callbacks.onPress(self, _event, _cantUpdate)
                 return true
             else
-                self.callbacks.onFailedPress(self, _event)
+                self.callbacks.onFailedPress(self, _event, _cantUpdate)
                 return false
             end
         else
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
         end
     end
     return false
@@ -1501,14 +1501,14 @@ function Label:touch(_x, _y, _event, _cantUpdate)
             local _x2 = self.pos.x + string.len(self.text) - 1 -- CALCULATE X2
             if checkAreaPress(self.pos.x, self.pos.y, _x2, self.pos.y, _x, _y) then -- CHECK IF IT WAS PRESSED
                 -- IF THE LABEL WAS PRESSED CALL CALLBACK
-                self.callbacks.onPress(self, _event)
+                self.callbacks.onPress(self, _event, _cantUpdate)
                 return true
             else
-                self.callbacks.onFailedPress(self, _event)
+                self.callbacks.onFailedPress(self, _event, _cantUpdate)
                 return false
             end
         else
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
         end
     end
     return false
@@ -1640,14 +1640,14 @@ function Button:touch(_x, _y, _event, _cantUpdate)
             if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
                 -- IF THE BUTTON WAS PRESSED CALL CALLBACK
                 self.state = not self.state
-                self.callbacks.onPress(self, _event)
+                self.callbacks.onPress(self, _event, _cantUpdate)
                 return true
             else
-                self.callbacks.onFailedPress(self, _event)
+                self.callbacks.onFailedPress(self, _event, _cantUpdate)
                 return false
             end
         else
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
         end
     end
     return false
@@ -1789,19 +1789,19 @@ function Menu:touch(_x, _y, _event, _cantUpdate)
                 local _objUpdated = false
                 for key, obj in pairs(self.objs) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
                     if obj:touch(_x, _y, _event, _objUpdated) then
-                        self.callbacks.onButtonPress(self, obj, _event)
+                        self.callbacks.onButtonPress(self, obj, _event, _cantUpdate)
                         _objUpdated = true
                     else
-                        self.callbacks.onFailedButtonPress(self, obj, _event)
+                        self.callbacks.onFailedButtonPress(self, obj, _event, _cantUpdate)
                     end
                 end
                 return _objUpdated
             else
-                self.callbacks.onFailedPress(self, _event)
+                self.callbacks.onFailedPress(self, _event, _cantUpdate)
                 return false
             end
         else
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
         end
     end
     return false
@@ -2035,14 +2035,14 @@ function PercentageBar:touch(_x, _y, _event, _cantUpdate)
         if not _cantUpdate then
             if checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
                 -- IF THE PERCENTAGEBAR WAS PRESSED CALL CALLBACK
-                self.callbacks.onPress(self, _event)
+                self.callbacks.onPress(self, _event, _cantUpdate)
                 return true
             else
-                self.callbacks.onFailedPress(self, _event)
+                self.callbacks.onFailedPress(self, _event, _cantUpdate)
                 return false
             end
         else
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
         end
     end
     return false
@@ -2351,46 +2351,7 @@ function Memo:edit(_event)
                 local cursorLine = self.lines[self.cursor.pos.line] -- GET LINE WHERE THE CURSOR IS LOCATED
 
                 if event[2] == 28 then -- ENTER KEY
-                    if self.cursor.limits.enabled then -- IF LIMITS ARE ENABLED THEN
-                        if self.cursor.limits.line then
-                            if #self.lines + 1 <= self.cursor.limits.line then -- IF THE NEXT LINE IS ALLOWED THEN
-                                table.insert(self.lines, self.cursor.pos.line + 1, '') -- CREATE A NEW LINE
-
-                                self.lines[self.cursor.pos.line] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
-                                    0,
-                                    self.cursor.pos.char - 1
-                                )
-                                self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
-                                    self.cursor.pos.char,
-                                    #cursorLine
-                                )..self.lines[self.cursor.pos.line + 1]
-                            end
-                        else
-                            table.insert(self.lines, self.cursor.pos.line + 1, '') -- CREATE A NEW LINE
-
-                            self.lines[self.cursor.pos.line] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
-                                0,
-                                self.cursor.pos.char - 1
-                            )
-                            self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
-                                self.cursor.pos.char,
-                                #cursorLine
-                            )..self.lines[self.cursor.pos.line + 1]
-                        end
-                    else -- IF LIMITS AREN'T ENABLED THEN
-                        table.insert(self.lines, self.cursor.pos.line + 1, '') -- CREATE A NEW LINE
-
-                        self.lines[self.cursor.pos.line] = cursorLine:sub( -- KEEP THE TEXT BEFORE THE CURSOR ON THE OLD LINE
-                            0,
-                            self.cursor.pos.char - 1
-                        )
-                        self.lines[self.cursor.pos.line + 1] = cursorLine:sub( -- PUT THE TEXT AFTER THE CURSOR ON THE NEW LINE
-                            self.cursor.pos.char,
-                            #cursorLine
-                        )..self.lines[self.cursor.pos.line + 1]
-                    end
-
-                    self:setCursorPos(1, self.cursor.pos.line + 1) -- SET CURSOR POS TO THE START OF THE NEW LINE
+                    self:write('\n')
                     
                 elseif event[2] == 14 then -- BACKSPACE KEY
                     if self.cursor.pos.char > 1 then -- IF THE CURSOR ISN'T AT THE BEGINNING IF THE LINE THEN
@@ -2413,6 +2374,7 @@ function Memo:edit(_event)
                                         #cursorLine
                                     )
                                     table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
+                                    self:setCursorPos(_endOfPreviousLine + 1, self.cursor.pos.line - 1) -- SET CURSOR TO THE END OF THE PREVIOUS LINE
                                 end
                             else
                                 self.lines[self.cursor.pos.line - 1] = self.lines[self.cursor.pos.line - 1]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
@@ -2420,16 +2382,16 @@ function Memo:edit(_event)
                                     #cursorLine
                                 )
                                 table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
+                                self:setCursorPos(_endOfPreviousLine + 1, self.cursor.pos.line - 1) -- SET CURSOR TO THE END OF THE PREVIOUS LINE
                             end
-                        else-- IF CURSOR LIMITS AREN'T ENABLED THEN
-                            self.lines[self.cursor.pos.line - 1] = self.lines[self.cursor.pos.line - 1]..cursorLine:sub(-- SET PREV LINE TO PREVLINE + CURRLINE
+                        else -- IF CURSOR LIMITS AREN'T ENABLED THEN
+                            self.lines[self.cursor.pos.line - 1] = self.lines[self.cursor.pos.line - 1]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
                                 self.cursor.pos.char,
                                 #cursorLine
                             )
                             table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
+                            self:setCursorPos(_endOfPreviousLine + 1, self.cursor.pos.line - 1) -- SET CURSOR TO THE END OF THE PREVIOUS LINE
                         end
-
-                        self:setCursorPos(_endOfPreviousLine + 1, self.cursor.pos.line - 1) -- SET CURSOR TO THE END OF THE PREVIOUS LINE
                     end
 
                 elseif event[2] == 211 then -- CANC KEY
@@ -2531,16 +2493,16 @@ function Memo:touch(_x, _y, _event, _cantUpdate)
     if not self.hidden then
         if not _cantUpdate and checkAreaPress(self.pos.x1, self.pos.y1, self.pos.x2, self.pos.y2, _x, _y) then -- CHECK IF IT WAS PRESSED
             -- IF THE MEMO WAS PRESSED CALL CALLBACK
-            self.callbacks.onPress(self, _event)
+            self.callbacks.onPress(self, _event, _cantUpdate)
             self.active = true
-            self.callbacks.onActivated(self, _event)
+            self.callbacks.onActivated(self, _event, _cantUpdate)
 
             if self.selfLoop then
                 self.cursor.blink.enabled = true
                 self.cursor.visible = true
                 self:edit(_event)
                 self.active = false
-                self.callbacks.onDeactivated(self, _event)
+                self.callbacks.onDeactivated(self, _event, _cantUpdate)
                 self.cursor.blink.enabled = false
                 self.cursor.visible = false
 
@@ -2551,10 +2513,10 @@ function Memo:touch(_x, _y, _event, _cantUpdate)
 
             return true
         else
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
             if self.active then
                 self.active = false
-                self.callbacks.onDeactivated(self, _event)
+                self.callbacks.onDeactivated(self, _event, _cantUpdate)
 
                 if self.editSettings.editable and self.cursor.blink.automatic then
                     self.cursor.blink.enabled = false
@@ -2566,7 +2528,7 @@ function Memo:touch(_x, _y, _event, _cantUpdate)
     end
     if self.active then
         self.active = false
-        self.callbacks.onDeactivated(self, _event)
+        self.callbacks.onDeactivated(self, _event, _cantUpdate)
     end
     return false
 end
@@ -2616,12 +2578,14 @@ function Memo:write(_string)
 
     for key, line in pairs(lines) do
 
-        if key ~= 1 then
-            if self.lines[self.cursor.pos.line + 1] then -- IF A LINE AFTER THE CURRENT ONE EXISTS THEN GO TO IT AND TO THE END OF IT
-                self:setCursorPos(#self.lines[self.cursor.pos.line + 1], self.cursor.pos.line + 1)
-            else -- IF A LINE AFTER THE CURRENT ONE DOESN'T EXISTS THEN CREATE AND GO TO IT
-                self:setCursorPos(1, self.cursor.pos.line + 1, true)
-            end
+        if key ~= 1 then -- IF IT'S NOT THE FIRST LINE THEN
+            local cursorLine = self.lines[self.cursor.pos.line] -- GET CURRENT CURSOR LINE
+            local wordsAfterCursor = cursorLine:sub(self.cursor.pos.char) -- GET THE WORDS AFTER THE CURSOR
+
+            self.lines[self.cursor.pos.line] = cursorLine:sub(0, self.cursor.pos.char - 1) -- MAKE THE CURRENT LINE ONLY HAVE THE WORDS BEFORE THE CURSOR
+
+            table.insert(self.lines, self.cursor.pos.line + 1, wordsAfterCursor) -- INSERT NEW LINE AFTER THE CURRENT ONE AND SELECT IT
+            self:setCursorPos(1, self.cursor.pos.line + 1)
         end
         
         local cursorLine = self.lines[self.cursor.pos.line]
@@ -2846,27 +2810,27 @@ function Window:touch(_x, _y, _event, _cantUpdate)
                 self.active = true
                 self.grabbedFrom.x = _x
                 self.grabbedFrom.y = _y
-                self.callbacks.onPress(self, _event)
+                self.callbacks.onPress(self, _event, _cantUpdate)
                 
                 local _objUpdated = false
                 for _, obj in pairs(self.objs.events.touch) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
                     if obj:touch(_x, _y, _event, _objUpdated) then
-                        self.callbacks.onOBJPress(self, obj, _event)
+                        self.callbacks.onOBJPress(self, obj, _event, _cantUpdate)
                         _objUpdated = true
                     else
-                        self.callbacks.onFailedOBJPress(self, obj, _event)
+                        self.callbacks.onFailedOBJPress(self, obj, _event, _cantUpdate)
                     end
                 end
 
                 return true
             else
                 self.active = false
-                self.callbacks.onFailedPress(self, _event)
+                self.callbacks.onFailedPress(self, _event, _cantUpdate)
                 return false
             end
         else
             self.active = false
-            self.callbacks.onFailedPress(self, _event)
+            self.callbacks.onFailedPress(self, _event, _cantUpdate)
         end
     end
     return false
@@ -3009,10 +2973,10 @@ function OBJGroup:touch(_x, _y, _event, _cantUpdate)
             local _objUpdated = false
             for _, obj in pairs(self.objs.events.touch) do -- UPDATE OBJs THAT ARE ATTACHED TO IT
                 if obj:touch(_x, _y, _event, _objUpdated) then
-                    self.callbacks.onOBJPress(self, obj, _event)
+                    self.callbacks.onOBJPress(self, obj, _event, _cantUpdate)
                     _objUpdated = true
                 else
-                    self.callbacks.onFailedOBJPress(self, obj, _event)
+                    self.callbacks.onFailedOBJPress(self, obj, _event, _cantUpdate)
                 end
             end
             return _objUpdated

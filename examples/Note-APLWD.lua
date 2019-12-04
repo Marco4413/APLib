@@ -282,10 +282,32 @@ end
 -- OBJs CALLBACKS
 
 --//MENU BUTTONS\\--
+mFileMenu:setCallback(
+    APLib.event.menu.onFailedPress,
+    function (self, event)
+        mbFile.state = false
+        self:hide(true)
+        
+        mbFile.hasMenuFailed = true
+    end
+)
+
 mbFile:setCallback(
     APLib.event.button.onPress,
     function (self, event)
-        mFileMenu:hide(not self.state)
+        if not self.hasMenuFailed then
+            mFileMenu:hide(not self.state)
+        else
+            self.state = false
+        end
+        self.hasMenuFailed = false
+    end
+)
+
+mbFile:setCallback(
+    APLib.event.button.onFailedPress,
+    function (self, event)
+        self.hasMenuFailed = false
     end
 )
 
@@ -477,23 +499,6 @@ bCompact:setCallback(
 --//MEMO\\--
 
 mMemo:setCallback(
-    APLib.event.memo.onPress,
-    function (self, event)
-        if not mFileMenu.hidden then
-            mFileMenu:hide(true)
-
-            APLib.setColor(bgTextColor)
-            APLib.rectangle(mFileMenu.pos.x1, mFileMenu.pos.y1, mFileMenu.pos.x2, mFileMenu.pos.y2)
-            APLib.setColor(shapeColor)
-
-            mbFile.state = false
-            mbFile:draw()
-            APLib.globalMonitorBuffer.draw()
-        end
-    end
-)
-
-mMemo:setCallback(
     APLib.event.memo.onEdit,
     function (self, event)
         if event then
@@ -505,14 +510,8 @@ mMemo:setCallback(
                 end
             end
         end
-        APLib.setColor(bgColor)
-        APLib.rectangle(lLines.pos.x, lLines.pos.y, APLib.globalMonitorWidth - 1, lLines.pos.y)
-        APLib.setColor(shapeColor)
         lLines.text = 'Lines: '..#self.lines
-        lLines:draw()
         lCursorPos.text = 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')'
-        lCursorPos:draw()
-        APLib.globalMonitorBuffer.draw()
     end
 )
 
@@ -536,17 +535,8 @@ APLib.setLoopGroupCallback(
     'main',
     APLib.event.loop.group.onClock,
     function (event)
-
-        APLib.setColor(bgColor)
-        APLib.rectangle(lLines.pos.x, lLines.pos.y, lLines.pos.x + #lLines.text - 1, lLines.pos.y)
-        APLib.setColor(shapeColor)
-        
         lLines.text = 'Lines: '..#mMemo.lines
         lCursorPos.text = 'Cursor: ('..mMemo.cursor.pos.char..'; '..mMemo.cursor.pos.line..')'
-        lLines:draw()
-        lCursorPos:draw()
-        APLib.globalMonitorBuffer.draw()
-
         lPath.text = CurrFile
     end
 )
