@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.27.0',
+    ver = '1.28.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -2267,7 +2267,7 @@ function Memo:setCursorPos(_char, _line, _fillEmptyLines)
     if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ON
         if self.cursor.limits.char then
             if _char > self.cursor.limits.char + 1 then -- IF CHAR IS MORE THAN THE LIMIT SET IT TO IT
-                _char = self.cursor.limits.char
+                _char = self.cursor.limits.char + 1
             end
         end
         if self.cursor.limits.line then
@@ -2345,43 +2345,7 @@ function Memo:edit(_event)
                     return false
                 end
             elseif event[1] == 'char' and self.editSettings.charEvent then
-                local cursorLine = self.lines[self.cursor.pos.line] -- GET LINE WHERE THE CURSOR IS LOCATED
-
-                if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                    if self.cursor.limits.char then
-                        if self.cursor.pos.char <= self.cursor.limits.char then -- IF CURSOR IS IN THE LIMITS THEN
-                            self.lines[self.cursor.pos.line] = cursorLine:sub( -- ADD CHAR TO THE LINE
-                                0,
-                                self.cursor.pos.char - 1
-                            )..event[2]..cursorLine:sub(
-                                self.cursor.pos.char,
-                                #cursorLine
-                            )
-
-                            self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR BY ONE ON THE X AXIS
-                        end
-                    else
-                        self.lines[self.cursor.pos.line] = cursorLine:sub( -- ADD CHAR TO THE LINE
-                            0,
-                            self.cursor.pos.char - 1
-                        )..event[2]..cursorLine:sub(
-                            self.cursor.pos.char,
-                            #cursorLine
-                        )
-
-                        self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR BY ONE ON THE X AXIS
-                    end
-                else -- IF CURSOR LIMITS ARE DISABLED THEN
-                    self.lines[self.cursor.pos.line] = cursorLine:sub( -- ADD CHAR TO THE LINE
-                        0,
-                        self.cursor.pos.char - 1
-                    )..event[2]..cursorLine:sub(
-                        self.cursor.pos.char,
-                        #cursorLine
-                    )
-
-                    self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR BY ONE ON THE X AXIS
-                end
+                self:write(tostring(event[2]))
 
             elseif event[1] == 'key' and self.editSettings.keyEvent then
                 local cursorLine = self.lines[self.cursor.pos.line] -- GET LINE WHERE THE CURSOR IS LOCATED
@@ -2400,9 +2364,6 @@ function Memo:edit(_event)
                                     self.cursor.pos.char,
                                     #cursorLine
                                 )..self.lines[self.cursor.pos.line + 1]
-                                
-                                self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR POS LINE TO NEW LINE
-                                self.cursor.pos.char = 1 -- SET CURSOR POS CHAR TO 1
                             end
                         else
                             table.insert(self.lines, self.cursor.pos.line + 1, '') -- CREATE A NEW LINE
@@ -2415,9 +2376,6 @@ function Memo:edit(_event)
                                 self.cursor.pos.char,
                                 #cursorLine
                             )..self.lines[self.cursor.pos.line + 1]
-                            
-                            self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR POS LINE TO NEW LINE
-                            self.cursor.pos.char = 1 -- SET CURSOR POS CHAR TO 1
                         end
                     else -- IF LIMITS AREN'T ENABLED THEN
                         table.insert(self.lines, self.cursor.pos.line + 1, '') -- CREATE A NEW LINE
@@ -2430,10 +2388,10 @@ function Memo:edit(_event)
                             self.cursor.pos.char,
                             #cursorLine
                         )..self.lines[self.cursor.pos.line + 1]
-                        
-                        self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR POS LINE TO NEW LINE
-                        self.cursor.pos.char = 1 -- SET CURSOR POS CHAR TO 1
                     end
+
+                    self:setCursorPos(1, self.cursor.pos.line + 1) -- SET CURSOR POS TO THE START OF THE NEW LINE
+                    
                 elseif event[2] == 14 then -- BACKSPACE KEY
                     if self.cursor.pos.char > 1 then -- IF THE CURSOR ISN'T AT THE BEGINNING IF THE LINE THEN
                         self.lines[self.cursor.pos.line] = cursorLine:sub( -- DELETE CHAR BEFORE CURSOR
@@ -2443,7 +2401,8 @@ function Memo:edit(_event)
                             self.cursor.pos.char,
                             #cursorLine
                         )
-                        self.cursor.pos.char = self.cursor.pos.char - 1 -- SET CURSOR TO THE CHAR BEFORE THE ONE DELETED
+  
+                        self:setCursorPos(self.cursor.pos.char - 1, self.cursor.pos.line) -- SET CURSOR TO THE CHAR BEFORE THE ONE DELETED
                     elseif self.cursor.pos.line > 1 then -- IF CURSOR POS IS AT THE BEGINNING OF THE LINE AND NOT ON THE FIRST ONE THEN
                         local _endOfPreviousLine = #self.lines[self.cursor.pos.line - 1] -- GET THE LINE BEFORE THE ONE WHERE THE CURSOR IS
                         if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
@@ -2454,8 +2413,6 @@ function Memo:edit(_event)
                                         #cursorLine
                                     )
                                     table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
-                                    self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
-                                    self.cursor.pos.char = _endOfPreviousLine + 1 -- SELECT END OF THE PREV LINE
                                 end
                             else
                                 self.lines[self.cursor.pos.line - 1] = self.lines[self.cursor.pos.line - 1]..cursorLine:sub( -- SET PREV LINE TO PREVLINE + CURRLINE
@@ -2463,8 +2420,6 @@ function Memo:edit(_event)
                                     #cursorLine
                                 )
                                 table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
-                                self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
-                                self.cursor.pos.char = _endOfPreviousLine + 1 -- SELECT END OF THE PREV LINE
                             end
                         else-- IF CURSOR LIMITS AREN'T ENABLED THEN
                             self.lines[self.cursor.pos.line - 1] = self.lines[self.cursor.pos.line - 1]..cursorLine:sub(-- SET PREV LINE TO PREVLINE + CURRLINE
@@ -2472,9 +2427,9 @@ function Memo:edit(_event)
                                 #cursorLine
                             )
                             table.remove(self.lines, self.cursor.pos.line) -- REMOVE CURRLINE
-                            self.cursor.pos.line = self.cursor.pos.line - 1 -- SELECT PREV LINE
-                            self.cursor.pos.char = _endOfPreviousLine + 1 -- SELECT END OF THE PREV LINE
                         end
+
+                        self:setCursorPos(_endOfPreviousLine + 1, self.cursor.pos.line - 1) -- SET CURSOR TO THE END OF THE PREVIOUS LINE
                     end
 
                 elseif event[2] == 211 then -- CANC KEY
@@ -2507,81 +2462,32 @@ function Memo:edit(_event)
                     end
 
                 elseif event[2] == 203 then -- ARROW KEY LEFT
-                    if self.cursor.pos.char > 1 then -- IF CURSOR POS IS GREATER THAN 0 THEN
-                        self.cursor.pos.char = self.cursor.pos.char - 1 -- SET CURSOR POS CHAR TO PREV CHAR
-                    else
-                        if self.cursor.pos.line > 1 then -- IF IT ISN'T ON THE FIRST LINE THEN
-                            self.cursor.pos.line = self.cursor.pos.line - 1 -- SET IT TO THE PREVIOUS ONE
-                            self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
+                    if self.cursor.pos.char == 1 then
+                        if self.cursor.pos.line > 1 then
+                            self:setCursorPos(#self.lines[self.cursor.pos.line - 1] + 1, self.cursor.pos.line - 1)
                         end
+                    else
+                        self:setCursorPos(self.cursor.pos.char - 1, self.cursor.pos.line)
                     end
-
 
                 elseif event[2] == 205 then -- ARROW KEY RIGHT
-                    if self.cursor.pos.char <= #cursorLine then -- IF CURSOR ISN'T AT THE END OF TEXT IN THE LINE THEN
-                        if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                            if self.cursor.limits.char then
-                                if self.cursor.pos.char <= self.cursor.limits.char then -- IF THE CURSOR DOESN'T GO OUT OF THE LIMITS IF MOVED TO THE RIGHT THEN DO IT
-                                    self.cursor.pos.char = self.cursor.pos.char + 1
-                                end
-                            else
-                                self.cursor.pos.char = self.cursor.pos.char + 1
-                            end
+                    if self.cursor.limits.enabled and self.cursor.limits.char then
+                        if self.cursor.pos.char >= self.cursor.limits.char and self.lines[self.cursor.pos.line + 1] then
+                            self:setCursorPos(1, self.cursor.pos.line + 1)
                         else
-                            self.cursor.pos.char = self.cursor.pos.char + 1 -- MOVE CURSOR TO THE RIGHT
+                            self:setCursorPos(self.cursor.pos.char + 1, self.cursor.pos.line)
                         end
                     else
-                        if self.lines[self.cursor.pos.line + 1] then -- IF A NEXT LINE EXISTS THEN
-                            if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                                if self.cursor.limits.line then
-                                    if self.cursor.pos.line < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
-                                        self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
-                                        self.cursor.pos.char = 1
-                                    end
-                                else
-                                    self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
-                                    self.cursor.pos.char = 1
-                                end
-                            else -- IF CURSOR LIMITS AREN'T ENABLED THEN
-                                self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO NEXT LINE
-                                self.cursor.pos.char = 1
-                            end
-                        end
+                        self:setCursorPos(self.cursor.pos.char + 1, self.cursor.pos.line)
                     end
-
 
                 elseif event[2] == 200 then -- ARROW KEY UP
-                    if self.cursor.pos.line > 1 then -- IF IT ISN'T ON THE FIRST LINE THEN
-                        self.cursor.pos.line = self.cursor.pos.line - 1 -- SET IT TO THE PREVIOUS ONE
-                        if self.cursor.pos.char - 1 > #self.lines[self.cursor.pos.line] then -- IF CURSOR POS CHAR IS GREATER THAN THE END OF THE TEXT ON PREV LINE THEN SET IT TO THE END OF IT
-                            self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
-                        end
-                    end
+                    self:setCursorPos(self.cursor.pos.char, self.cursor.pos.line - 1)
 
 
                 elseif event[2] == 208 then -- ARROW KEY DOWN
-                    if self.lines[self.cursor.pos.line + 1] then -- IF A NEXT LINE EXISTS THEN
-                        if self.cursor.limits.enabled then -- IF CURSOR LIMITS ARE ENABLED THEN
-                            if self.cursor.limits.line then
-                                if self.cursor.pos.line < self.cursor.limits.line then -- IF NEXT LINE IS WITHIN THE LIMITS THEN
-                                    self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
-                                    if self.cursor.pos.char - 1 > #self.lines[self.cursor.pos.line] then -- IF CURSOR POS CHAR IS GREATER THAN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
-                                        self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
-                                    end
-                                end
-                            else
-                                self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO IT
-                                if self.cursor.pos.char - 1 > #self.lines[self.cursor.pos.line] then -- IF CURSOR POS CHAR IS GREATER THAN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
-                                    self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
-                                end
-                            end
-                        else -- IF CURSOR LIMITS AREN'T ENABLED THEN
-                            self.cursor.pos.line = self.cursor.pos.line + 1 -- SET CURSOR TO NEXT LINE
-                            if self.cursor.pos.char - 1 > #self.lines[self.cursor.pos.line] then -- IF CURSOR POS CHAR IS GREATER THAN THE END OF THE TEXT ON NEXT LINE THEN SET IT TO THE END OF IT
-                                self.cursor.pos.char = #self.lines[self.cursor.pos.line] + 1
-                            end
-                        end
-                    end
+                    self:setCursorPos(self.cursor.pos.char, self.cursor.pos.line + 1)
+
                 end
             end
             return true
@@ -2617,7 +2523,6 @@ function Memo:edit(_event)
         end
     end
 end
-
 
 function Memo:touch(_x, _y, _event, _cantUpdate)
     assert(type(_x) == 'number', 'Memo.touch: x must be a number, got '..type(_x))
@@ -2709,7 +2614,7 @@ function Memo:write(_string)
 
     local lines = stringSplit(_string, '\n')
 
-    for key, value in pairs(lines) do
+    for key, line in pairs(lines) do
 
         if key ~= 1 then
             if self.lines[self.cursor.pos.line + 1] then -- IF A LINE AFTER THE CURRENT ONE EXISTS THEN GO TO IT AND TO THE END OF IT
@@ -2720,30 +2625,30 @@ function Memo:write(_string)
         end
         
         local cursorLine = self.lines[self.cursor.pos.line]
-    
-        cursorLine = cursorLine:sub( -- ADD STRING TO THE LINE
-            0,
-            self.cursor.pos.char - 1
-        )..value..cursorLine:sub(
-            self.cursor.pos.char,
-            #cursorLine
-        )
-    
-        self.lines[self.cursor.pos.line] = cursorLine
-        self:setCursorPos(self.cursor.pos.char + #value, self.cursor.pos.line)
         
-        if self.cursor.limits.enabled then -- IF LIMITS ARE ACTIVE THEN
-            if self.cursor.limits.char then -- IF A LINE CONTAINS MORE CHARS THAN ALLOWED THEN DELETE THE EXTRA ONES
-                if #cursorLine > self.cursor.limits.char then
-                    cursorLine = cursorLine:sub(1, self.cursor.limits.char)
-                end
-            end
+        if self.cursor.limits.enabled and self.cursor.limits.char then
+            line = line:sub(0, self.cursor.limits.char - #cursorLine) -- REMOVE EXTRA CHARS FROM LINE
+            cursorLine = cursorLine:sub( -- ADD STRING TO THE LINE
+                0,
+                self.cursor.pos.char - 1
+            )..line..cursorLine:sub(
+                self.cursor.pos.char,
+                #cursorLine
+            )
+        else
+            cursorLine = cursorLine:sub( -- ADD STRING TO THE LINE
+                0,
+                self.cursor.pos.char - 1
+            )..line..cursorLine:sub(
+                self.cursor.pos.char,
+                #cursorLine
+            )
         end
     
         self.lines[self.cursor.pos.line] = cursorLine
+        self:setCursorPos(self.cursor.pos.char + #line, self.cursor.pos.line)
 
     end
-    
     
 end
 
