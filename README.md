@@ -5,3 +5,5 @@ I advise you to check the [**examples**](./examples) or [**the old attempt at a 
 
 ***Documentation's Status:***<br>
 [![Documentation Status](https://readthedocs.org/projects/aplib/badge/?version=latest)](https://aplib.readthedocs.io/en/latest/?badge=latest)
+
+[***Trello Board!***](https://trello.com/b/1YvB0l0U)

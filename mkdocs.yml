@@ -1,7 +1,7 @@
 site_name: APLib docs
 repo_url: https://github.com/hds536jhmk/APLib/
 site_author: hds536jhmk
-copyright: Copyright (c) 2019, hds536jhmk hds536jhmk@gmail.com
+copyright: Copyright (c) 2019, hds536jhmk
 nav:
     - Home: index.md
     - Read Only Variables:
