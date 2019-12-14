@@ -1,6 +1,6 @@
 
 info = {
-    ver = '1.28.1',
+    ver = '1.29.0',
     author = 'hds536jhmk',
     website = 'https://github.com/hds536jhmk/APLib'
 }
@@ -1103,22 +1103,18 @@ Clock.__index = Clock
 
 Point = {}
 
-function Point.new(_x, _y, _color)
+function Point.new(_x, _y, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.color = args[1]; args[1] = nil; end
     
     assert(type(_x) == 'number', 'Point.new: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Point.new: y must be a number, got '..type(_y))
-    
-    --FIX THINGS
-    _color = tonumber(_color)
-
-    --CHECK THINGS
-    if not _color then
-        _color = globalColor
-    end
+    assert(type(args) == 'table', 'Point.new: args must be a table or nil, got '..type(args))
 
     --CREATE RECTANGLE
     local _newPoint = {
-        color = _color,
+        color = tonumber(args.color) or globalColor,
         hidden = false,
         pos = {
             x = _x,
@@ -1193,29 +1189,22 @@ Point.__index = Point
 
 Rectangle = {}
 
-function Rectangle.new(_x1, _y1, _x2, _y2, _color, _type)
+function Rectangle.new(_x1, _y1, _x2, _y2, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.color = args[1]; args[1] = nil; end
+    if args[2] ~= nil then args.type = args[2]; args[2] = nil; end
     
     assert(type(_x1) == 'number', 'Rectangle.new: x1 must be a number, got '..type(_x1))
     assert(type(_y1) == 'number', 'Rectangle.new: y1 must be a number, got '..type(_y1))
     assert(type(_x2) == 'number', 'Rectangle.new: x2 must be a number, got '..type(_x2))
     assert(type(_y2) == 'number', 'Rectangle.new: y2 must be a number, got '..type(_y2))
-    
-    --FIX THINGS
-    _color = tonumber(_color)
-    _type = tonumber(_type)
-
-    --CHECK THINGS
-    if not _color then
-        _color = globalColor
-    end
-    if not _type then
-        _type = globalRectangleType
-    end
+    assert(type(args) == 'table', 'Rectangle.new: args must be a table or nil, got '..type(args))
 
     --CREATE RECTANGLE
     local _newRectangle = {
-        color = _color,
-        type = _type,
+        color = tonumber(args.color) or globalColor,
+        type = tonumber(args.type) or globalRectangleType,
         hidden = false,
         pos = {
             x1 = _x1,
@@ -1295,32 +1284,33 @@ Rectangle.__index = Rectangle
 
 Header = {}
 
-function Header.new(_y, _text, _textColor, _backgroundTextColor, _transparentBG)
-
+function Header.new(_y, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.text = args[1]; args[1] = nil; end
+    if args[2] ~= nil then args.textColor = args[2]; args[2] = nil; end
+    if args[3] ~= nil then args.backgroundTextColor = args[3]; args[3] = nil; end
+    if args[4] ~= nil then args.transparentBG = args[4]; args[4] = nil; end
+    
     assert(type(_y) == 'number', 'Header.new: y must be a number, got '..type(_y))
+    assert(type(args) == 'table', 'Header.new: args must be a table or nil, got '..type(args))
 
     --FIX THINGS
-    _text = tostring(_text)
-    _textColor = tonumber(_textColor)
-    _backgroundTextColor = tonumber(_backgroundTextColor)
-
-    --CHECK THINGS
-    if not _textColor then
-        _textColor = globalTextColor
-    end
+    if not args.text then args.text = ''; end
+    args.text = tostring(args.text)
 
     --CREATE HEADER
     local _newHeader = {
-        text = _text,
+        text = args.text,
         hidden = false,
         pos = {
-            x = math.floor((globalMonitorWidth - string.len(_text) + 1) / 2),
+            x = math.floor((globalMonitorWidth - string.len(args.text) + 1) / 2),
             y = _y
         },
         colors = {
-            textColor = _textColor,
-            backgroundTextColor = _backgroundTextColor,
-            transparentBG = _transparentBG
+            textColor = tonumber(args.textColor) or globalTextColor,
+            backgroundTextColor = tonumber(args.backgroundTextColor),
+            transparentBG = args.transparentBG
         },
         callbacks = {
             onDraw = function() end,
@@ -1417,33 +1407,34 @@ Header.__index = Header
 
 Label = {}
 
-function Label.new(_x, _y, _text, _textColor, _backgroundTextColor, _transparentBG)
-
+function Label.new(_x, _y, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.text = args[1]; args[1] = nil; end
+    if args[2] ~= nil then args.textColor = args[2]; args[2] = nil; end
+    if args[3] ~= nil then args.backgroundTextColor = args[3]; args[3] = nil; end
+    if args[4] ~= nil then args.transparentBG = args[4]; args[4] = nil; end
+    
     assert(type(_x) == 'number', 'Label.new: x must be a number, got '..type(_x))
     assert(type(_y) == 'number', 'Label.new: y must be a number, got '..type(_y))
+    assert(type(args) == 'table', 'Label.new: args must be a table or nil, got '..type(args))
 
     --FIX THINGS
-    _text = tostring(_text)
-    _textColor = tonumber(_textColor)
-    _backgroundTextColor = tonumber(_backgroundTextColor)
-
-    --CHECK THINGS
-    if not _textColor then
-        _textColor = globalTextColor
-    end
+    if not args.text then args.text = ''; end
+    args.text = tostring(args.text)
 
     --CREATE LABEL
     local _newLabel = {
-        text = _text,
+        text = args.text,
         hidden = false,
         pos = {
             x = _x,
             y = _y
         },
         colors = {
-            textColor = _textColor,
-            backgroundTextColor = _backgroundTextColor,
-            transparentBG = _transparentBG
+            textColor = tonumber(args.textColor) or globalTextColor,
+            backgroundTextColor = tonumber(args.backgroundTextColor),
+            transparentBG = args.transparentBG
         },
         callbacks = {
             onDraw = function() end,
@@ -1525,34 +1516,28 @@ Label.__index = Label
 
 Button = {}
 
-function Button.new(_x1, _y1, _x2, _y2, _text, _textColor, _backgroundTextColor, _pressedButtonColor, _notPressedButtonColor)
+function Button.new(_x1, _y1, _x2, _y2, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.text = args[1]; args[1] = nil; end
+    if args[2] ~= nil then args.textColor = args[2]; args[2] = nil; end
+    if args[3] ~= nil then args.backgroundTextColor = args[3]; args[3] = nil; end
+    if args[4] ~= nil then args.pressedButtonColor = args[4]; args[4] = nil; end
+    if args[5] ~= nil then args.notPressedButtonColor = args[5]; args[5] = nil; end
     
     assert(type(_x1) == 'number', 'Button.new: x1 must be a number, got '..type(_x1))
     assert(type(_y1) == 'number', 'Button.new: y1 must be a number, got '..type(_y1))
     assert(type(_x2) == 'number', 'Button.new: x2 must be a number, got '..type(_x2))
     assert(type(_y2) == 'number', 'Button.new: y2 must be a number, got '..type(_y2))
+    assert(type(args) == 'table', 'Button.new: args must be a table or nil, got '..type(args))
     
     --FIX THINGS
-    _text = tostring(_text)
-    _textColor = tonumber(_textColor)
-    _backgroundTextColor = tonumber(_backgroundTextColor)
-    _pressedButtonColor = tonumber(_pressedButtonColor)
-    _notPressedButtonColor = tonumber(_notPressedButtonColor)
-
-    --CHECK THINGS
-    if not _textColor then
-        _textColor = globalTextColor
-    end
-    if not _pressedButtonColor then
-        _pressedButtonColor = globalColor
-    end
-    if not _notPressedButtonColor then
-        _notPressedButtonColor = globalColor
-    end
+    if not args.text then args.text = ''; end
+    args.text = tostring(args.text)
 
     --CREATE BUTTON
     local _newButton = {
-        text = _text,
+        text = args.text,
         state = false,
         hidden = false,
         pos = {
@@ -1562,10 +1547,10 @@ function Button.new(_x1, _y1, _x2, _y2, _text, _textColor, _backgroundTextColor,
             y2 = _y2
         },
         colors = {
-            textColor = _textColor,
-            backgroundTextColor = _backgroundTextColor,
-            pressedButtonColor = _pressedButtonColor,
-            notPressedButtonColor = _notPressedButtonColor
+            textColor = tonumber(args.textColor) or globalTextColor,
+            backgroundTextColor = tonumber(args.backgroundTextColor),
+            pressedButtonColor = tonumber(args.pressedButtonColor) or globalColor,
+            notPressedButtonColor = tonumber(args.notPressedButtonColor) or globalColor
         },
         callbacks = {
             onDraw = function() end,
@@ -1664,24 +1649,20 @@ Button.__index = Button
 
 Menu = {}
 
-function Menu.new(_x1, _y1, _x2, _y2, _color)
+function Menu.new(_x1, _y1, _x2, _y2, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.color = args[1]; args[1] = nil; end
     
     assert(type(_x1) == 'number', 'Menu.new: x1 must be a number, got '..type(_x1))
     assert(type(_y1) == 'number', 'Menu.new: y1 must be a number, got '..type(_y1))
     assert(type(_x2) == 'number', 'Menu.new: x2 must be a number, got '..type(_x2))
     assert(type(_y2) == 'number', 'Menu.new: y2 must be a number, got '..type(_y2))
-    
-    --FIX THINGS
-    _color = tonumber(_color)
-
-    --CHECK THINGS
-    if not _color then
-        _color = globalColor
-    end
+    assert(type(args) == 'table', 'Menu.new: args must be a table or nil, got '..type(args))
 
     --CREATE MENU
     local _newMenu = {
-        color = _color,
+        color = tonumber(args.color) or globalColor,
         objs = {},
         hidden = true,
         pos = {
@@ -1818,7 +1799,14 @@ Menu.__index = Menu
 
 PercentageBar = {}
 
-function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _valueColor, _backgroundValueColor, _barColor, _backgroundBarColor)
+function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.drawValue = args[1]; args[1] = nil; end
+    if args[2] ~= nil then args.valueColor = args[2]; args[2] = nil; end
+    if args[3] ~= nil then args.backgroundValueColor = args[3]; args[3] = nil; end
+    if args[4] ~= nil then args.barColor = args[4]; args[4] = nil; end
+    if args[5] ~= nil then args.backgroundBarColor = args[5]; args[5] = nil; end
     
     assert(type(_x1) == 'number', 'PercentageBar.new: x1 must be a number, got '..type(_x1))
     assert(type(_y1) == 'number', 'PercentageBar.new: y1 must be a number, got '..type(_y1))
@@ -1827,26 +1815,13 @@ function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _
     assert(type(_value) == 'number', 'PercentageBar.new: value must be a number, got '..type(_value))
     assert(type(_min) == 'number', 'PercentageBar.new: min must be a number, got '..type(_min))
     assert(type(_max) == 'number', 'PercentageBar.new: max must be a number, got '..type(_max))
-    
-    --FIX THINGS
-    _valueColor = tonumber(_valueColor)
-    _backgroundValueColor = tonumber(_backgroundValueColor)
-    _barColor = tonumber(_barColor)
-    _backgroundBarColor = tonumber(_backgroundBarColor)
-    
-    --CHECK THINGS
-    if not _valueColor then
-        _valueColor = globalTextColor
-    end
-    if not _barColor then
-        _barColor = globalColor
-    end
+    assert(type(args) == 'table', 'PercentageBar.new: args must be a table or nil, got '..type(args))
     
     --CREATE PERCENTAGEBAR
     local _newPercentageBar = {
         hidden = false,
         value = {
-            draw = _drawValue,
+            draw = args.drawValue,
             drawOnPB = true,
             percentage = nil,
             current = nil,
@@ -1860,10 +1835,10 @@ function PercentageBar.new(_x1, _y1, _x2, _y2, _value, _min, _max, _drawValue, _
             y2 = _y2
         },
         colors = {
-            valueColor = _valueColor,
-            backgroundValueColor = _backgroundValueColor,
-            barColor = _barColor,
-            backgroundBarColor = _backgroundBarColor
+            valueColor = tonumber(args.valueColor) or globalTextColor,
+            backgroundValueColor = tonumber(args.backgroundValueColor),
+            barColor = tonumber(args.barColor) or globalColor,
+            backgroundBarColor = tonumber(args.backgroundBarColor)
         },
         callbacks = {
             onDraw = function() end,
@@ -2059,32 +2034,19 @@ PercentageBar.__index = PercentageBar
 
 Memo = {}
 
-function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, _cursorColor)
+function Memo.new(_x1, _y1, _x2, _y2, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.textColor = args[1]; args[1] = nil; end
+    if args[2] ~= nil then args.backgroundTextColor = args[2]; args[2] = nil; end
+    if args[3] ~= nil then args.color = args[3]; args[3] = nil; end
+    if args[4] ~= nil then args.cursorColor = args[4]; args[4] = nil; end
     
     assert(type(_x1) == 'number', 'Memo.new: x1 must be a number, got '..type(_x1))
     assert(type(_y1) == 'number', 'Memo.new: y1 must be a number, got '..type(_y1))
     assert(type(_x2) == 'number', 'Memo.new: x2 must be a number, got '..type(_x2))
     assert(type(_y2) == 'number', 'Memo.new: y2 must be a number, got '..type(_y2))
-    
-    --FIX THINGS
-    _textColor = tonumber(_textColor)
-    _backgroundTextColor = tonumber(_backgroundTextColor)
-    _color = tonumber(_color)
-    _cursorColor = tonumber(_cursorColor)
-    
-    --CHECK THINGS
-    if not _textColor then
-        _textColor = globalTextColor
-    end
-    if not _color then
-        _color = globalColor
-    end
-    if not _backgroundTextColor then
-        _backgroundTextColor = _color
-    end
-    if not _cursorColor then
-        _cursorColor = colors.white
-    end
+    assert(type(args) == 'table', 'Memo.new: args must be a table or nil, got '..type(args))
     
     --CREATE MEMO
     local _newMemo = {
@@ -2106,8 +2068,8 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
         cursor = {
             text = ' ',
             colors = {
-                textColor = _textColor,
-                backgroundTextColor = _cursorColor
+                textColor = tonumber(args.textColor) or globalTextColor,
+                backgroundTextColor = tonumber(args.cursorColor) or colors.white
             },
             visible = false,
             blink = {
@@ -2127,9 +2089,9 @@ function Memo.new(_x1, _y1, _x2, _y2, _textColor, _backgroundTextColor, _color, 
             }
         },
         colors = {
-            textColor = _textColor,
-            backgroundTextColor = _backgroundTextColor,
-            color = _color
+            textColor = tonumber(args.textColor) or globalTextColor,
+            backgroundTextColor = tonumber(args.backgroundTextColor),
+            color = tonumber(args.color) or globalColor
         },
         callbacks = {
             onDraw = function() end,
@@ -2168,7 +2130,11 @@ function Memo:draw()
         setRectangleType(rectangleTypes.filled)
         setColor(self.colors.color)
         setTextColor(self.colors.textColor)
-        setBackgroundTextColor(self.colors.backgroundTextColor)
+        if self.colors.backgroundTextColor then
+            setBackgroundTextColor(self.colors.backgroundTextColor)
+        else
+            setBackgroundTextColor(self.colors.color)
+        end
 
         rectangle(_memoX1, _memoY1, _memoX2, _memoY2)
 
@@ -2655,26 +2621,22 @@ Memo.__index = Memo
 
 Window = {}
 
-function Window.new(_x1, _y1, _x2, _y2, _color)
+function Window.new(_x1, _y1, _x2, _y2, args)
+    -- Fix Arguments
+    args = args or {}
+    if args[1] ~= nil then args.color = args[1]; args[1] = nil; end
     
     assert(type(_x1) == 'number', 'Window.new: x1 must be a number, got '..type(_x1))
     assert(type(_y1) == 'number', 'Window.new: y1 must be a number, got '..type(_y1))
     assert(type(_x2) == 'number', 'Window.new: x2 must be a number, got '..type(_x2))
     assert(type(_y2) == 'number', 'Window.new: y2 must be a number, got '..type(_y2))
-    
-    --FIX THINGS
-    _color = tonumber(_color)
-
-    --CHECK THINGS
-    if not _color then
-        _color = term.getBackgroundColor()
-    end
+    assert(type(args) == 'table', 'Window.new: args must be a table or nil, got '..type(args))
 
     --CREATE WINDOW
     local _newWindow = {
         active = false,
         hidden = false,
-        color = _color,
+        color = tonumber(args.color) or term.getBackgroundColor(),
         grabbedFrom = {
             x = 1,
             y = 1
@@ -3028,8 +2990,8 @@ OBJGroup.__index = OBJGroup
 
 -- STATS LABELS
 
-globalLoop.stats.FPS = Label.new(0, 0, '0FPS', nil, nil, true)
-globalLoop.stats.EPS = Label.new(0, 0, '0EPS', nil, nil, true)
+globalLoop.stats.FPS = Label.new(0, 0, {text = '0FPS', transparentBG = true})
+globalLoop.stats.EPS = Label.new(0, 0, {text = '0EPS', transparentBG = true})
 
 globalLoop.stats.FPS.hidden = true
 globalLoop.stats.EPS.hidden = true
@@ -3486,9 +3448,10 @@ if table.maxn(tArgs) > 0 then
     elseif tArgs[1] == 'create' then -- OPTION CREATE
         if tArgs[2] then
             -- STORE TEXT IN A VARIABLE
-            local _text = '\n-- //AUTO-GENERATED-CODE//\nlocal APLibPath = settings.get(\'APLibPath\')\n\nassert(  -- check if setup was done before, if not return with an error\n    type(APLibPath) == \'string\',\n    \'Couldn\\\'t open APLib through path: \'..tostring(\n        APLibPath\n    )..\'; probably you haven\\\'t completed Lib setup via \\\'LIBFILE setup\\\' or the setup failed\'\n)\n\nassert( -- check if Lib is still there, if not return with an error\n    fs.exists(APLibPath),\n    \'Couldn\\\'t open APLib through path: \'..tostring(\n      	APLibPath\n    )..\'; remember that if you move the Lib\\\'s folder you must set it up again via \\\'LIBFILE setup\\\'\'\n)\n\nos.loadAPI(APLibPath) -- load Lib with CraftOS\'s built-in feature\n\nAPLibPath = fs.getName(APLibPath)\nif APLibPath:sub(#APLibPath - 3) == \'.lua\' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end\nlocal APLib = _ENV[APLibPath]\nAPLibPath = nil\n-- //--//\n\n'
+            local _text = '\n-- //AUTO-GENERATED-CODE//\nlocal APLibPath = settings.get(\'APLibPath\')\n\nassert(  -- check if setup was done before, if not return with an error\n    type(APLibPath) == \'string\',\n    \'Couldn\\\'t open APLib through path: \'..tostring(\n        APLibPath\n    )..\'; probably you haven\\\'t completed Lib setup via \\\'LIBFILE setup\\\' or the setup failed\'\n)\n\nassert( -- check if Lib is still there, if not return with an error\n    fs.exists(APLibPath),\n    \'Couldn\\\'t open APLib through path: \'..tostring(\n      	APLibPath\n    )..\'; remember that if you move the Lib\\\'s folder you must set it up again via \\\'LIBFILE setup\\\'\'\n)\n\nos.loadAPI(APLibPath) -- load Lib with CraftOS\'s built-in feature\n\nAPLibPath = fs.getName(APLibPath)\nif APLibPath:sub(#APLibPath - 3) == \'.lua\' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end\nlocal APLib = _ENV[APLibPath]\nAPLib.APLibPath = APLibPath\nAPLibPath = nil\n-- //MAIN-PROGRAM//\n\n\n\n-- //AUTO-GENERATED-CODE//\nos.unloadAPI(APLib.APLibPath)\n-- //--//'
             -- STORE PATH IN A VARIABLE
-            local path = '/'..tArgs[2]
+            local path = tArgs[2]
+            if path:sub(1, 1) ~= '/' then path = '/'..path; end
             if fs.exists(path) then
                 print('Are you sure you want to overwrite: '..path)
                 print('Press ENTER to confirm or another key to cancel.')

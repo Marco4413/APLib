@@ -12,7 +12,7 @@ assert(  -- check if setup was done before, if not return with an error
 assert( -- check if Lib is still there, if not return with an error
     fs.exists(APLibPath),
     'Couldn\'t open APLib through path: '..tostring(
-    	APLibPath
+      	APLibPath
     )..'; remember that if you move the Lib\'s folder you must set it up again via \'LIBFILE setup\''
 )
 
@@ -21,8 +21,9 @@ os.loadAPI(APLibPath) -- load Lib with CraftOS's built-in feature
 APLibPath = fs.getName(APLibPath)
 if APLibPath:sub(#APLibPath - 3) == '.lua' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end
 local APLib = _ENV[APLibPath]
+APLib.APLibPath = APLibPath
 APLibPath = nil
--- //--//
+-- //MAIN-PROGRAM//
 
 APLib.bClear()
 
@@ -133,3 +134,7 @@ end
 
 APLib.setBackground(colors.black)
 APLib.bClear()
+
+-- //AUTO-GENERATED-CODE//
+os.unloadAPI(APLib.APLibPath)
+-- //--//

@@ -12,7 +12,7 @@ assert(  -- check if setup was done before, if not return with an error
 assert( -- check if Lib is still there, if not return with an error
     fs.exists(APLibPath),
     'Couldn\'t open APLib through path: '..tostring(
-    	APLibPath
+      	APLibPath
     )..'; remember that if you move the Lib\'s folder you must set it up again via \'LIBFILE setup\''
 )
 
@@ -21,8 +21,9 @@ os.loadAPI(APLibPath) -- load Lib with CraftOS's built-in feature
 APLibPath = fs.getName(APLibPath)
 if APLibPath:sub(#APLibPath - 3) == '.lua' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end
 local APLib = _ENV[APLibPath]
+APLib.APLibPath = APLibPath
 APLibPath = nil
--- //--//
+-- //MAIN-PROGRAM//
 
 Path = ''
 FSDirs = {}
@@ -85,12 +86,12 @@ reloadFS(Path)
 
 -- HEADER
 
-hTitle = APLib.Header.new(1, 'EXPLORER', colors.red, colors.gray)
+hTitle = APLib.Header.new(1, {'EXPLORER', colors.red, colors.gray})
 
 -- MEMOs
 
-mFSDirs = APLib.Memo.new(1, 2, 25, 19, colors.lime, nil, colors.lightGray, colors.lightGray)
-mFSFiles = APLib.Memo.new(27, 2, 51, 19, colors.white, nil, colors.lightGray, colors.lightGray)
+mFSDirs = APLib.Memo.new(1, 2, 25, 19, {colors.lime, nil, colors.lightGray, colors.lightGray})
+mFSFiles = APLib.Memo.new(27, 2, 51, 19, {colors.white, nil, colors.lightGray, colors.lightGray})
 
 mFSDirs.editSettings.charEvent = false
 mFSDirs.editSettings.keyEvent = false
@@ -175,3 +176,7 @@ APLib.setBackground(colors.gray)
 APLib.addLoopGroup('main', {hTitle, mFSDirs, mFSFiles})
 APLib.setLoopGroup('main')
 APLib.loop()
+
+-- //AUTO-GENERATED-CODE//
+os.unloadAPI(APLib.APLibPath)
+-- //--//

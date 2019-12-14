@@ -12,7 +12,7 @@ assert(  -- check if setup was done before, if not return with an error
 assert( -- check if Lib is still there, if not return with an error
     fs.exists(APLibPath),
     'Couldn\'t open APLib through path: '..tostring(
-    	APLibPath
+      	APLibPath
     )..'; remember that if you move the Lib\'s folder you must set it up again via \'LIBFILE setup\''
 )
 
@@ -21,8 +21,9 @@ os.loadAPI(APLibPath) -- load Lib with CraftOS's built-in feature
 APLibPath = fs.getName(APLibPath)
 if APLibPath:sub(#APLibPath - 3) == '.lua' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end
 local APLib = _ENV[APLibPath]
+APLib.APLibPath = APLibPath
 APLibPath = nil
--- //--//
+-- //MAIN-PROGRAM//
 
 -- PARAMS
 
@@ -57,7 +58,7 @@ end
 
 -- MEMO
 
-local meConsole = APLib.Memo.new(2, 4, 50, 16, nil, nil, colors.gray)
+local meConsole = APLib.Memo.new(2, 4, 50, 16, {nil, nil, colors.gray})
 meConsole:editable(true)
 meConsole:limits(false)
 
@@ -76,15 +77,15 @@ end
 
 -- HEADER
 
-local hTitle = APLib.Header.new(2, 'ChatBot powered by APLib '..APLib.ver)
+local hTitle = APLib.Header.new(2, {'ChatBot powered by APLib '..APLib.ver})
 
 -- LABEL
 
-local lCredits = APLib.Label.new(2, 18, '& PeripheralsPlusOne')
+local lCredits = APLib.Label.new(2, 18, {'& PeripheralsPlusOne'})
 
 -- BUTTON
 
-local bQuit = APLib.Button.new(45, 18, 50, 18, 'Quit', nil, nil, colors.green, colors.red)
+local bQuit = APLib.Button.new(45, 18, 50, 18, {'Quit', nil, nil, colors.green, colors.red})
 
 -- CALLBACKS
 
@@ -186,3 +187,7 @@ APLib.setLoopGroup('main')
 APLib.loop()
 
 APLib.bClear()
+
+-- //AUTO-GENERATED-CODE//
+os.unloadAPI(APLib.APLibPath)
+-- //--//

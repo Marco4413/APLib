@@ -1,5 +1,5 @@
 
---//INIT\\--
+-- //AUTO-GENERATED-CODE//
 local APLibPath = settings.get('APLibPath')
 
 assert(  -- check if setup was done before, if not return with an error
@@ -12,7 +12,7 @@ assert(  -- check if setup was done before, if not return with an error
 assert( -- check if Lib is still there, if not return with an error
     fs.exists(APLibPath),
     'Couldn\'t open APLib through path: '..tostring(
-    	APLibPath
+      	APLibPath
     )..'; remember that if you move the Lib\'s folder you must set it up again via \'LIBFILE setup\''
 )
 
@@ -21,9 +21,9 @@ os.loadAPI(APLibPath) -- load Lib with CraftOS's built-in feature
 APLibPath = fs.getName(APLibPath)
 if APLibPath:sub(#APLibPath - 3) == '.lua' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end
 local APLib = _ENV[APLibPath]
+APLib.APLibPath = APLibPath
 APLibPath = nil
-
---//-----------------------------------------\\--
+-- //MAIN-PROGRAM//
 
 local tArgs = { ... }
 
@@ -80,46 +80,46 @@ local LAYOUT = {
         end
     end,
     all = {
-        mbmInput = function () return 0, 0, 0, 0, nil, shapeColor, shapeColor; end,
-        mbFile = function () return 1, 1, 4, 1, 'File', nil, nil, colors.lightGray, colors.gray; end,
-        mbNewOpen = function () return 0, 0, 0, 0, 'New/Open', nil, nil, colors.lightGray, colors.gray; end,
-        mbSave = function () return 0, 0, 0, 0, 'Save', nil, nil, colors.lightGray, colors.gray; end,
-        mbSaveAs = function () return 0, 0, 0, 0, 'SaveAs', nil, nil, colors.lightGray, colors.gray; end,
-        mbDelete = function () return 0, 0, 0, 0, 'Delete', nil, nil, colors.lightGray, colors.gray; end,
-        mbGoto = function () return 0, 0, 0, 0, 'Goto', nil, nil, colors.lightGray, colors.gray; end,
-        mbRun = function () return 0, 0, 0, 0, 'Run', nil, nil, colors.lightGray, colors.gray; end,
-        mbExit = function () return 0, 0, 0, 0, 'Exit', nil, nil, colors.green, colors.red; end,
-        mFileMenu = function () return 1, 2, 10, 8; end,
-        lLines = function () return 9, 1, 'Lines: 0'; end,
-        lCursorPos = function () return 21, 1, 'Cursor: (1; 1)'; end,
-        owplL1 = function () return 3, 2, 'Do you want', nil, colors.lightGray; end,
-        owplL2 = function () return 2, 3, 'to overwrite?', nil, colors.lightGray; end,
-        owpbAccept = function () return 2, 5, 4, 5, 'Yes', nil, nil, colors.gray, colors.lightGray; end,
-        owpbReject = function () return 13, 5, 14, 5, 'No', nil, nil, colors.gray, colors.lightGray; end,
-        owpwMain = function () return 2, 2, 16, 7, colors.lightGray; end
+        mbmInput   = function () return 0, 0, 0, 0,   {backgroundTextColor = shapeColor, color = shapeColor}; end,
+        mbFile     = function () return 1, 1, 4, 1,   {text = 'File',     pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        mbNewOpen  = function () return 0, 0, 0, 0,   {text = 'New/Open', pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        mbSave     = function () return 0, 0, 0, 0,   {text = 'Save',     pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        mbSaveAs   = function () return 0, 0, 0, 0,   {text = 'SaveAs',   pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        mbDelete   = function () return 0, 0, 0, 0,   {text = 'Delete',   pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        mbGoto     = function () return 0, 0, 0, 0,   {text = 'Goto',     pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        mbRun      = function () return 0, 0, 0, 0,   {text = 'Run',      pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        mbExit     = function () return 0, 0, 0, 0,   {text = 'Exit',     pressedButtonColor = colors.green,     notPressedButtonColor = colors.red}; end,
+        mFileMenu  = function () return 1, 2, 10, 8; end,
+        lLines     = function () return 9, 1,         {text = 'Lines: 0'}; end,
+        lCursorPos = function () return 21, 1,        {text = 'Cursor: (1; 1)'}; end,
+        owplL1     = function () return 3, 2,         {text = 'Do you want',   backgroundTextColor = colors.lightGray}; end,
+        owplL2     = function () return 2, 3,         {text = 'to overwrite?', backgroundTextColor = colors.lightGray}; end,
+        owpbAccept = function () return 2, 5, 4, 5,   {text = 'Yes', pressedButtonColor = colors.gray, notPressedButtonColor = colors.lightGray}; end,
+        owpbReject = function () return 13, 5, 14, 5, {text = 'No',  pressedButtonColor = colors.gray, notPressedButtonColor = colors.lightGray}; end,
+        owpwMain   = function () return 2, 2, 16, 7,  {color = colors.lightGray}; end
     },
     computer = {
-        mMemo = function () return 5, 2, 51, 18, nil, nil, colors.black; end,
-        bRenderer = function () return 1, 2, 4, 18, '', nil, nil, colors.lightGray, colors.gray; end,
-        lRenderer = function () return 1, 19, 'Classic render engine is being used!', colors.red; end,
-        bCompact = function () return 51, 1, 51, 1, 'C', nil, nil, colors.green, colors.red; end,
-        lPath = function () return 1, 19, CurrFile; end,
-        owpwMain = function () return 18, 7, 32, 12, colors.lightGray; end
+        mMemo     = function () return 5, 2, 51, 18,  {color = colors.black}; end,
+        bRenderer = function () return 1, 2, 4, 18,   {pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        lRenderer = function () return 1, 19,         {text = 'Classic render engine is being used!', textColor = colors.red}; end,
+        bCompact  = function () return 51, 1, 51, 1,  {text = 'C', pressedButtonColor = colors.green, notPressedButtonColor = colors.red}; end,
+        lPath     = function () return 1, 19,         {text = CurrFile}; end,
+        owpwMain  = function () return 18, 7, 32, 12, {color = colors.lightGray}; end
     },
     turtle = {
-        mMemo = function () return 5, 2, 39, 12, nil, nil, colors.black; end,
-        bRenderer = function () return 1, 2, 4, 12, '', nil, nil, colors.lightGray, colors.gray; end,
-        lRenderer = function () return 1, 13, 'Classic render mode!', colors.red; end,
-        bCompact = function () return 39, 1, 39, 1, 'C', nil, nil, colors.green, colors.red; end,
-        lPath = function () return 1, 13, CurrFile; end
+        mMemo = function () return 5, 2, 39, 12,      {color = colors.black}; end,
+        bRenderer = function () return 1, 2, 4, 12,   {pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        lRenderer = function () return 1, 13,         {text = 'Classic render mode!', textColor = colors.red}; end,
+        bCompact = function () return 39, 1, 39, 1,   {text = 'C', pressedButtonColor = colors.green, notPressedButtonColor = colors.red}; end,
+        lPath = function () return 1, 13,             {text = CurrFile}; end
     },
     pocket = {
-        mMemo = function () return 5, 2, 26, 18, nil, nil, colors.black; end,
-        bRenderer = function () return 1, 2, 4, 18, '', nil, nil, colors.lightGray, colors.gray; end,
-        lRenderer = function () return 1, 20, 'Classic render mode!', colors.red; end,
-        bCompact = function () return 26, 1, 26, 1, 'C', nil, nil, colors.green, colors.red; end,
-        lCursorPos = function () return 1, 19, 'Cursor: (1; 1)'; end,
-        lPath = function () return 1, 20, CurrFile; end
+        mMemo = function () return 5, 2, 26, 18,      {color = colors.black}; end,
+        bRenderer = function () return 1, 2, 4, 18,   {pressedButtonColor = colors.lightGray, notPressedButtonColor = colors.gray}; end,
+        lRenderer = function () return 1, 20,         {text = 'Classic render mode!', textColor = colors.red}; end,
+        bCompact = function () return 26, 1, 26, 1,   {text = 'C', pressedButtonColor = colors.green, notPressedButtonColor = colors.red}; end,
+        lCursorPos = function () return 1, 19,        {text = 'Cursor: (1; 1)'}; end,
+        lPath = function () return 1, 20,             {text = CurrFile}; end
     },
     current = {}
 }
@@ -645,3 +645,7 @@ APLib.setLoopGroup('main')
 APLib.loop()
 
 APLib.setBackgroundMonitorGroup(colors.black)
+
+-- //AUTO-GENERATED-CODE//
+os.unloadAPI(APLib.APLibPath)
+-- //--//

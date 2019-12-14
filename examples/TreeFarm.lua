@@ -12,7 +12,7 @@ assert(  -- check if setup was done before, if not return with an error
 assert( -- check if Lib is still there, if not return with an error
     fs.exists(APLibPath),
     'Couldn\'t open APLib through path: '..tostring(
-    	APLibPath
+      	APLibPath
     )..'; remember that if you move the Lib\'s folder you must set it up again via \'LIBFILE setup\''
 )
 
@@ -21,8 +21,9 @@ os.loadAPI(APLibPath) -- load Lib with CraftOS's built-in feature
 APLibPath = fs.getName(APLibPath)
 if APLibPath:sub(#APLibPath - 3) == '.lua' then APLibPath = APLibPath:sub(1, #APLibPath - 4); end
 local APLib = _ENV[APLibPath]
+APLib.APLibPath = APLibPath
 APLibPath = nil
--- //--//
+-- //MAIN-PROGRAM//
 
 -- PARAMS
 
@@ -43,7 +44,7 @@ turtle.select(dropSlots[1])
 
 -- MEMO
 
-local meConsole = APLib.Memo.new(2, 2, 38, 12, nil, nil, colors.gray)
+local meConsole = APLib.Memo.new(2, 2, 38, 12, {nil, nil, colors.gray})
 meConsole:editable(false)
 meConsole:limits(false)
 
@@ -253,31 +254,31 @@ end
 
 -- HEADERS
 
-local hMain = APLib.Header.new(1, 'Main Menu')
-local hTask = APLib.Header.new(3, 'Task Bar')
+local hMain = APLib.Header.new(1, {'Main Menu'})
+local hTask = APLib.Header.new(3, {'Task Bar'})
 
 -- BUTTONS
 
-local bAutoFarm = APLib.Button.new(34, 1, 39, 1, 'Auto', nil, nil, colors.green, colors.red)
+local bAutoFarm = APLib.Button.new(34, 1, 39, 1, {'Auto', nil, nil, colors.green, colors.red})
 
-local bActions = APLib.Button.new(1, 1, 9, 1, 'Tasks', nil, nil, colors.lightGray, colors.gray)
+local bActions = APLib.Button.new(1, 1, 9, 1, {'Tasks', nil, nil, colors.lightGray, colors.gray})
 
-local mbHarvest = APLib.Button.new(0, 0, 0, 0, 'Harvest', nil, nil, colors.blue, colors.green)
+local mbHarvest = APLib.Button.new(0, 0, 0, 0, {'Harvest', nil, nil, colors.blue, colors.green})
 
-local mbPlant = APLib.Button.new(0, 0, 0, 0, 'Plant', nil, nil, colors.blue, colors.green)
+local mbPlant = APLib.Button.new(0, 0, 0, 0, {'Plant', nil, nil, colors.blue, colors.green})
 
-local mbDropAll = APLib.Button.new(0, 0, 0, 0, 'DropAll', nil, nil, colors.blue, colors.green)
+local mbDropAll = APLib.Button.new(0, 0, 0, 0, {'DropAll', nil, nil, colors.blue, colors.green})
 
-local mbQuit = APLib.Button.new(0, 0, 0, 0, 'Quit', nil, nil, colors.green, colors.red)
+local mbQuit = APLib.Button.new(0, 0, 0, 0, {'Quit', nil, nil, colors.green, colors.red})
 
 -- MENUS
 
-local mActions = APLib.Menu.new(1, 2, 9, 5, colors.lightGray)
+local mActions = APLib.Menu.new(1, 2, 9, 5, {colors.lightGray})
 mActions:set({mbHarvest, mbPlant, mbDropAll, mbQuit}, true)
 
 -- PERCENTAGEBAR
 
-local pbState = APLib.PercentageBar.new(4, 4, 36, 6, 0, 0, 4, true, nil, nil, colors.green, colors.black)
+local pbState = APLib.PercentageBar.new(4, 4, 36, 6, 0, 0, 4, {true, nil, nil, colors.green, colors.black})
 
 -- CALLBACKS
 
@@ -434,3 +435,7 @@ APLib.setLoopCallback(
 APLib.loop()
 
 APLib.bClear()
+
+-- //AUTO-GENERATED-CODE//
+os.unloadAPI(APLib.APLibPath)
+-- //--//
