@@ -3,7 +3,7 @@
 ![](./images/logo.png)
 
 What does APLib mean? Well, it means "**All Purpose Library**". This is a library for [**Minecraft's Computercraft**](https://computercraft.cc) that aims to make a lot of things much easier to do (like drawing on the screen or making GUIs).
-I advise you to check the [**examples**](https://github.com/hds536jhmk/APLib/tree/master/examples) or [**the old attempt at a documentation**](https://github.com/hds536jhmk/APLib/tree/master/old_docs) while the new documentation is being made.
+I advise you to check the [**examples**](https://github.com/Marco4413/APLib/tree/master/examples) or [**the old attempt at a documentation**](https://github.com/Marco4413/APLib/tree/master/old_docs) while the new documentation is being made.
 
 **Updated to APLib 1.26.0**
 

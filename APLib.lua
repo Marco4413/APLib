@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2019, hds536jhmk : https://github.com/hds536jhmk/APLib
+Copyright (c) 2022, Marco4413 : https://github.com/Marco4413/APLib
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -16,8 +16,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 info = {
     ver = '1.29.0',
-    author = 'hds536jhmk',
-    website = 'https://github.com/hds536jhmk/APLib'
+    author = 'Marco4413',
+    website = 'https://github.com/Marco4413/APLib'
 }
 
 --MONITOR
